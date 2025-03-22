@@ -3,9 +3,20 @@ import subprocess
 import csv
 import datetime
 import os
+import logging
 
 os.makedirs('results', exist_ok=True)
 timestamp = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Set the minimum log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(name)s.%(lineno)d - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Log to console
+        logging.FileHandler(os.path.join('results', f'{timestamp}log.txt'), mode='w'),
+    ]
+)
+logger = logging.getLogger(__name__)
 
 M = 4
 Ns = []
@@ -19,16 +30,18 @@ results = []
 for compiler in compilers:
     for opt in opt_flags:
         for N in Ns:
-            print('Running: make clean')
+            logger.info('Running: make clean')
             clean_result = subprocess.run(["make", "clean"], capture_output=True, text=True)
 
             if clean_result.returncode != 0:
+                logger.error(clean_result)
                 raise Exception("Make clean failed.")
 
-            print(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="{opt}"')
+            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="{opt}"')
             make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f'CFLAGS="{opt}"'], capture_output=True, text=True)
 
             if make_result.returncode != 0:
+                logger.error(make_result)
                 raise Exception("Make failed.")
 
             for _ in range(0,5):
@@ -44,7 +57,7 @@ for compiler in compilers:
                                 ):.3f
                             }'
                         results.append((particulas_s, N, opt, compiler))
-                        print(line)
+                        logger.info(line)
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
     writer = csv.writer(f)
