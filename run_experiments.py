@@ -58,10 +58,10 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 ):.3f
                             }'
-                        results.append((particulas_s, N, opt, compiler))
-                        logger.info(line)
+                        results.append((particulas_s, N, opt, compiler, runs))
+                    logger.info(line)
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(['particulas/s', 'N', 'opt', 'compiler'])
+    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs'])
     writer.writerows(results)
