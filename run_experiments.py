@@ -58,7 +58,7 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 ):.3f
                             }'
-                        results.append((particulas_s, N, opt, compiler, runs))
+                        results.append((particulas_s, N, opt, compiler, runs[m]))
                     logger.info(line)
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
