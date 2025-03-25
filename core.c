@@ -12,7 +12,7 @@ void init_pos(double* rxyz, const double rho)
     // inicialización de las posiciones de los átomos en un cristal FCC
 
     double a = cbrt(4.0 / rho);
-    int nucells = ceil(cbrt((double)N / 4.0));
+    int nucells = round(cbrt((double)N / 4.0));
     int idx = 0;
 
     for (int i = 0; i < nucells; i++) {
