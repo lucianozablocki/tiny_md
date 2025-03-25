@@ -18,18 +18,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-M = 4
+M = 5
 Ns = []
 for m in range(1,M+1):
     Ns.append(4*m**3)
 
-opt_flags = ['-O0', '-O1', '-O2', '-O3'] # Podriamos agregar fast math
+runs = [20,15,10,5,2]
+opt_flags = ['-O0', '-O1', '-O2', '-O3', '-Ofast']
 compilers = ['gcc', 'clang']
 results = []
 
 for compiler in compilers:
     for opt in opt_flags:
-        for N in Ns:
+        for m in range(0,M):
+            N = Ns[m]
             logger.info('Running: make clean')
             clean_result = subprocess.run(["make", "clean"], capture_output=True, text=True)
 
@@ -44,7 +46,7 @@ for compiler in compilers:
                 logger.error(make_result)
                 raise Exception("Make failed.")
 
-            for _ in range(0,5):
+            for _ in range(0,runs[m]):
                 result = subprocess.run(["./tiny_md"], capture_output=True, text=True)
                 output = result.stdout
                 for line in output.split("\n"):
