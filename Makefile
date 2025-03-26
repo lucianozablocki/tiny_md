@@ -19,7 +19,7 @@ tiny_md: tiny_md.o $(OBJECTS)
 	$(CC) $(WFLAGS) $(CPPFLAGS) $(CFLAGS) -c $<
 
 clean:
-	rm -f $(TARGETS) *.o *.xyz *.log .depend
+	rm -f $(TARGETS) *.i *.s *.o *.xyz *.log .depend
 
 .depend: $(SOURCES)
 	$(CC) -MM $^ > $@
