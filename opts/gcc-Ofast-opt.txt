@@ -17,11 +17,3 @@ core.c:183:23: optimized:  loop versioned for vectorization because of possible 
 core.c:166:23: optimized: loop vectorized using 16 byte vectors
 core.c:166:23: optimized:  loop versioned for vectorization because of possible aliasing
 core.c:183:23: optimized: loop with 1 iterations completely unrolled (header execution count 8589933)
-viz.c:230:5: optimized:  Inlining post_display/36 into display_func/39.
-viz.c:20:12: optimized: Semantic equality hit:win_x/33->win_y/34
-viz.c:20:12: optimized: Assembler symbol names:win_x/33->win_y/34
-viz.c:294:5: optimized:  Inlined open_glut_window/40 into main/41 which now has time 386.000000 and size 109, net change of -4.
-viz.c:229:5: optimized:  Inlined draw_atoms/37 into display_func/39 which now has time 5047.000984 and size 143, net change of -4.
-viz.c:163:27: optimized: loop vectorized using 16 byte vectors
-viz.c:183:31: optimized: loop vectorized using 16 byte vectors
-viz.c:208:31: optimized: loop vectorized using 16 byte vectors
