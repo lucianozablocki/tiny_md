@@ -1,0 +1,24 @@
+tiny_md.c:72:31: optimized: loop vectorized using 16 byte vectors
+tiny_md.c:60:31: optimized: loop vectorized using 16 byte vectors
+tiny_md.c:49:27: optimized: loop vectorized using 16 byte vectors
+core.c:121:18: optimized:  Inlining minimum_image/7 into forces/8.
+core.c:119:18: optimized:  Inlining minimum_image/7 into forces/8.
+core.c:117:18: optimized:  Inlining minimum_image/7 into forces/8.
+core.c:173:23: optimized:  Inlining pbc/9 into velocity_verlet/10.
+core.c:172:23: optimized:  Inlining pbc/9 into velocity_verlet/10.
+core.c:171:23: optimized:  Inlining pbc/9 into velocity_verlet/10.
+core.c:21:31: optimized: basic block part vectorized using 16 byte vectors
+core.c:69:23: optimized: loop vectorized using 16 byte vectors
+core.c:96:23: optimized: Loop 1 distributed: split to 0 loops and 1 library calls.
+core.c:131:29: optimized: basic block part vectorized using 16 byte vectors
+core.c:135:29: optimized: basic block part vectorized using 16 byte vectors
+core.c:183:23: optimized: loop vectorized using 16 byte vectors
+core.c:183:23: optimized:  loop versioned for vectorization because of possible aliasing
+core.c:183:23: optimized: loop with 1 iterations completely unrolled (header execution count 8589933)
+gcc: warning: tiny_md.o: linker input file unused because linking not done
+gcc: error: tiny_md.o: linker input file not found: No such file or directory
+gcc: warning: core.o: linker input file unused because linking not done
+gcc: error: core.o: linker input file not found: No such file or directory
+gcc: warning: wtime.o: linker input file unused because linking not done
+gcc: error: wtime.o: linker input file not found: No such file or directory
+make: *** [Makefile:16: tiny_md] Error 1
