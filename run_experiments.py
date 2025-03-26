@@ -39,8 +39,8 @@ for compiler in compilers:
                 logger.error(clean_result)
                 raise Exception("Make clean failed.")
 
-            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="{opt}"')
-            make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f'CFLAGS="{opt}"'], capture_output=True, text=True)
+            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="{opt}" TARGETS="tiny_md"')
+            make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f'CFLAGS="{opt}"', 'TARGETS="tiny_md"'], capture_output=True, text=True)
 
             if make_result.returncode != 0:
                 logger.error(make_result)
@@ -58,10 +58,10 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 ):.3f
                             }'
-                        results.append((particulas_s, N, opt, compiler))
-                        logger.info(line)
+                        results.append((particulas_s, N, opt, compiler, runs[m]))
+                    logger.info(line)
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(['particulas/s', 'N', 'opt', 'compiler'])
+    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs'])
     writer.writerows(results)
