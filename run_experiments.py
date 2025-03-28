@@ -39,8 +39,8 @@ for compiler in compilers:
                 logger.error(clean_result)
                 raise Exception("Make clean failed.")
 
-            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="{opt}" TARGETS="tiny_md"')
-            make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f'CFLAGS="{opt}"', 'TARGETS=tiny_md'], capture_output=True, text=True)
+            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="-march=native {opt}" TARGETS="tiny_md"')
+            make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f"CFLAGS=-march=native {opt}", 'TARGETS=tiny_md'], capture_output=True, text=True)
 
             if make_result.returncode != 0:
                 logger.error(make_result)
