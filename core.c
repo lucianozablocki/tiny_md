@@ -7,12 +7,12 @@
 #define ECUT (4.0 * (pow(RCUT, -12) - pow(RCUT, -6)))
 
 
-void init_pos(double* rxyz, const double rho)
+void init_pos(float* rxyz, const float rho)
 {
     // inicialización de las posiciones de los átomos en un cristal FCC
 
-    double a = cbrt(4.0 / rho);
-    int nucells = round(cbrt((double)N / 4.0));
+    float a = cbrt(4.0 / rho);
+    int nucells = round(cbrt((float)N / 4.0));
     int idx = 0;
 
     for (int i = 0; i < nucells; i++) {
@@ -41,16 +41,16 @@ void init_pos(double* rxyz, const double rho)
 }
 
 
-void init_vel(double* vxyz, double* temp, double* ekin)
+void init_vel(float* vxyz, float* temp, float* ekin)
 {
     // inicialización de velocidades aleatorias
 
-    double sf, sumvx = 0.0, sumvy = 0.0, sumvz = 0.0, sumv2 = 0.0;
+    float sf, sumvx = 0.0, sumvy = 0.0, sumvz = 0.0, sumv2 = 0.0;
 
     for (int i = 0; i < 3 * N; i += 3) {
-        vxyz[i + 0] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 1] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 2] = rand() / (double)RAND_MAX - 0.5;
+        vxyz[i + 0] = rand() / (float)RAND_MAX - 0.5;
+        vxyz[i + 1] = rand() / (float)RAND_MAX - 0.5;
+        vxyz[i + 2] = rand() / (float)RAND_MAX - 0.5;
 
         sumvx += vxyz[i + 0];
         sumvy += vxyz[i + 1];
@@ -59,9 +59,9 @@ void init_vel(double* vxyz, double* temp, double* ekin)
             + vxyz[i + 2] * vxyz[i + 2];
     }
 
-    sumvx /= (double)N;
-    sumvy /= (double)N;
-    sumvz /= (double)N;
+    sumvx /= (float)N;
+    sumvy /= (float)N;
+    sumvz /= (float)N;
     *temp = sumv2 / (3.0 * N);
     *ekin = 0.5 * sumv2;
     sf = sqrt(T0 / *temp);
@@ -75,7 +75,7 @@ void init_vel(double* vxyz, double* temp, double* ekin)
 }
 
 
-static double minimum_image(double cordi, const double cell_length)
+static float minimum_image(float cordi, const float cell_length)
 {
     // imagen más cercana
 
@@ -88,45 +88,45 @@ static double minimum_image(double cordi, const double cell_length)
 }
 
 
-void forces(const double* rxyz, double* fxyz, double* epot, double* pres,
-            const double* temp, const double rho, const double V, const double L)
+void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
+            const float* temp, const float rho, const float V, const float L)
 {
     // calcula las fuerzas LJ (12-6)
 
     for (int i = 0; i < 3 * N; i++) {
         fxyz[i] = 0.0;
     }
-    double pres_vir = 0.0;
-    double rcut2 = RCUT * RCUT;
+    float pres_vir = 0.0;
+    float rcut2 = RCUT * RCUT;
     *epot = 0.0;
 
     for (int i = 0; i < 3 * (N - 1); i += 3) {
 
-        double xi = rxyz[i + 0];
-        double yi = rxyz[i + 1];
-        double zi = rxyz[i + 2];
+        float xi = rxyz[i + 0];
+        float yi = rxyz[i + 1];
+        float zi = rxyz[i + 2];
 
         for (int j = i + 3; j < 3 * N; j += 3) {
 
-            double xj = rxyz[j + 0];
-            double yj = rxyz[j + 1];
-            double zj = rxyz[j + 2];
+            float xj = rxyz[j + 0];
+            float yj = rxyz[j + 1];
+            float zj = rxyz[j + 2];
 
             // distancia mínima entre r_i y r_j
-            double rx = xi - xj;
+            float rx = xi - xj;
             rx = minimum_image(rx, L);
-            double ry = yi - yj;
+            float ry = yi - yj;
             ry = minimum_image(ry, L);
-            double rz = zi - zj;
+            float rz = zi - zj;
             rz = minimum_image(rz, L);
 
-            double rij2 = rx * rx + ry * ry + rz * rz;
+            float rij2 = rx * rx + ry * ry + rz * rz;
 
             if (rij2 <= rcut2) {
-                double r2inv = 1.0 / rij2;
-                double r6inv = r2inv * r2inv * r2inv;
+                float r2inv = 1.0 / rij2;
+                float r6inv = r2inv * r2inv * r2inv;
 
-                double fr = 24.0 * r2inv * r6inv * (2.0 * r6inv - 1.0);
+                float fr = 24.0 * r2inv * r6inv * (2.0 * r6inv - 1.0);
 
                 fxyz[i + 0] += fr * rx;
                 fxyz[i + 1] += fr * ry;
@@ -146,7 +146,7 @@ void forces(const double* rxyz, double* fxyz, double* epot, double* pres,
 }
 
 
-static double pbc(double cordi, const double cell_length)
+static float pbc(float cordi, const float cell_length)
 {
     // condiciones periodicas de contorno coordenadas entre [0,L)
     if (cordi <= 0) {
@@ -158,9 +158,9 @@ static double pbc(double cordi, const double cell_length)
 }
 
 
-void velocity_verlet(double* rxyz, double* vxyz, double* fxyz, double* epot,
-                     double* ekin, double* pres, double* temp, const double rho,
-                     const double V, const double L)
+void velocity_verlet(float* rxyz, float* vxyz, float* fxyz, float* epot,
+                     float* ekin, float* pres, float* temp, const float rho,
+                     const float V, const float L)
 {
 
     for (int i = 0; i < 3 * N; i += 3) { // actualizo posiciones
@@ -179,7 +179,7 @@ void velocity_verlet(double* rxyz, double* vxyz, double* fxyz, double* epot,
 
     forces(rxyz, fxyz, epot, pres, temp, rho, V, L); // actualizo fuerzas
 
-    double sumv2 = 0.0;
+    float sumv2 = 0.0;
     for (int i = 0; i < 3 * N; i += 3) { // actualizo velocidades
         vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
         vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
