@@ -30,17 +30,17 @@ int main()
     fprintf(file_thermo, "# t Temp Pres Epot Etot\n");
 
     srand(SEED);
-    float t = 0.0, sf;
+    float t = 0.0f, sf;
     float Rhob;
     Rho = RHOI;
     init_pos(rxyz, Rho);
     double start = wtime();
     for (int m = 0; m < 9; m++) {
         Rhob = Rho;
-        Rho = RHOI - 0.1 * (float)m;
+        Rho = RHOI - 0.1f * (float)m;
         cell_V = (float)N / Rho;
         cell_L = cbrt(cell_V);
-        tail = 16.0 * M_PI * Rho * ((2.0 / 3.0) * pow(RCUT, -9) - pow(RCUT, -3)) / 3.0;
+        tail = 16.0f * M_PI * Rho * ((2.0f / 3.0f) * pow(RCUT, -9) - pow(RCUT, -3)) / 3.0f;
         Etail = tail * (float)N;
         Ptail = tail * Rho;
 
