@@ -4,4 +4,4 @@ viz
 .depend
 *.xyz
 *.log
-
+**/.DS_Store
