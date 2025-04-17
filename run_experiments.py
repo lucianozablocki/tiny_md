@@ -24,7 +24,8 @@ for m in range(1,M+1):
     Ns.append(4*m**3)
 
 runs = [20,15,10,5,2]
-opt_flags = ['-O0', '-O1', '-O2', '-O3', '-Ofast']
+#opt_flags = ['-O0', '-O1', '-O2', '-O3', '-Ofast']
+opt_flags = ['-O1 -ffast-math -ftree-vectorize']
 compilers = ['gcc', 'clang']
 results = []
 
