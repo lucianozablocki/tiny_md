@@ -2,7 +2,8 @@
 #include "parameters.h"
 
 #include <math.h>
-#include <stdlib.h> // rand()
+#include <stdio.h>
+#include "mtwister.h"
 
 #define ECUT (4.0 * (pow(RCUT, -12) - pow(RCUT, -6)))
 
@@ -41,16 +42,15 @@ void init_pos(double* rxyz, const double rho)
 }
 
 
-void init_vel(double* vxyz, double* temp, double* ekin)
+void init_vel(double* vxyz, double* temp, double* ekin, MTRand* r)
 {
     // inicialización de velocidades aleatorias
 
     double sf, sumvx = 0.0, sumvy = 0.0, sumvz = 0.0, sumv2 = 0.0;
-
     for (int i = 0; i < 3 * N; i += 3) {
-        vxyz[i + 0] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 1] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 2] = rand() / (double)RAND_MAX - 0.5;
+        vxyz[i + 0] = genRand(r) - 0.5;
+        vxyz[i + 1] = genRand(r) - 0.5;
+        vxyz[i + 2] = genRand(r) - 0.5;
 
         sumvx += vxyz[i + 0];
         sumvy += vxyz[i + 1];
