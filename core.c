@@ -11,8 +11,8 @@ void init_pos(float* rxyz, const float rho)
 {
     // inicialización de las posiciones de los átomos en un cristal FCC
 
-    float a = cbrt(4.0f / rho);
-    int nucells = round(cbrt((float)N / 4.0f));
+    float a = cbrtf(4.0f / rho);
+    int nucells = roundf(cbrtf((float)N / 4.0f));
     int idx = 0;
 
     for (int i = 0; i < nucells; i++) {
@@ -149,7 +149,7 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 static float pbc(float cordi, const float cell_length)
 {
     // condiciones periodicas de contorno coordenadas entre [0,L)
-    if (cordi <= 0) {
+    if (cordi <= 0.0f) {
         cordi += cell_length;
     } else if (cordi > cell_length) {
         cordi -= cell_length;
