@@ -56,7 +56,7 @@ int main()
 
             velocity_verlet(rxyz, vxyz, fxyz, &Epot, &Ekin, &Pres, &Temp, Rho, cell_V, cell_L);
 
-            sf = sqrt(T0 / Temp);
+            sf = sqrtf(T0 / Temp);
             for (int k = 0; k < 3 * N; k++) { // reescaleo de velocidades
                 vxyz[k] *= sf;
             }
@@ -68,7 +68,7 @@ int main()
 
             velocity_verlet(rxyz, vxyz, fxyz, &Epot, &Ekin, &Pres, &Temp, Rho, cell_V, cell_L);
 
-            sf = sqrt(T0 / Temp);
+            sf = sqrtf(T0 / Temp);
             for (int k = 0; k < 3 * N; k++) { // reescaleo de velocidades
                 vxyz[k] *= sf;
             }
