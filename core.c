@@ -75,7 +75,7 @@ void init_vel(double* vxyz, double* temp, double* ekin)
 }
 
 
-static double minimum_image(double cordi, const double cell_length)
+static inline double minimum_image(double cordi, const double cell_length)
 {
     // imagen más cercana
 
@@ -146,7 +146,7 @@ void forces(const double* rxyz, double* fxyz, double* epot, double* pres,
 }
 
 
-static double pbc(double cordi, const double cell_length)
+static inline double pbc(double cordi, const double cell_length)
 {
     // condiciones periodicas de contorno coordenadas entre [0,L)
     if (cordi <= 0) {
