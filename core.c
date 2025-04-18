@@ -189,7 +189,9 @@ void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restr
         vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
         vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
         vxyz[i + 2] += 0.5 * fxyz[i + 2] * DT;
+    }
 
+    for (int i = 0; i < 3 * N; i += 3) { // actualizo velocidades
         sumv2 += vxyz[i + 0] * vxyz[i + 0] + vxyz[i + 1] * vxyz[i + 1]
             + vxyz[i + 2] * vxyz[i + 2];
     }
