@@ -51,10 +51,15 @@ void init_vel(double* vxyz, double* temp, double* ekin)
         vxyz[i + 0] = rand() / (double)RAND_MAX - 0.5;
         vxyz[i + 1] = rand() / (double)RAND_MAX - 0.5;
         vxyz[i + 2] = rand() / (double)RAND_MAX - 0.5;
+    }
 
+    for (int i = 0; i < 3 * N; i += 3) {
         sumvx += vxyz[i + 0];
         sumvy += vxyz[i + 1];
         sumvz += vxyz[i + 2];
+    }
+
+    for (int i = 0; i < 3 * N; i += 3) {
         sumv2 += vxyz[i + 0] * vxyz[i + 0] + vxyz[i + 1] * vxyz[i + 1]
             + vxyz[i + 2] * vxyz[i + 2];
     }
