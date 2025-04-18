@@ -158,7 +158,7 @@ static inline double pbc(double cordi, const double cell_length)
 }
 
 
-void velocity_verlet(double* rxyz, double* vxyz, double* fxyz, double* epot,
+void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restrict fxyz, double* epot,
                      double* ekin, double* pres, double* temp, const double rho,
                      const double V, const double L)
 {
