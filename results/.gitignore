@@ -1,9 +1,0 @@
-tiny_md
-viz
-*.o
-.depend
-*.xyz
-*.log
-.DS_Store
-*.i
-*.s

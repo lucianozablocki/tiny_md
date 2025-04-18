@@ -5,3 +5,5 @@ viz
 *.xyz
 *.log
 .DS_Store
+*.i
+*.s
