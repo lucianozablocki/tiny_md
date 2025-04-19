@@ -17,9 +17,9 @@ int main()
     double Rho, cell_V, cell_L, tail, Etail, Ptail;
     double *rxyz, *vxyz, *fxyz; // variables microscopicas
 
-    rxyz = (double*)malloc(3 * N * sizeof(double));
-    vxyz = (double*)malloc(3 * N * sizeof(double));
-    fxyz = (double*)malloc(3 * N * sizeof(double));
+    rxyz = (double*)malloc(4 * N * sizeof(double));
+    vxyz = (double*)malloc(4 * N * sizeof(double));
+    fxyz = (double*)malloc(4 * N * sizeof(double));
 
     printf("# Número de partículas:      %d\n", N);
     printf("# Temperatura de referencia: %.2f\n", T0);
@@ -46,7 +46,7 @@ int main()
 
         int i = 0;
         sf = cbrt(Rhob / Rho);
-        for (int k = 0; k < 3 * N; k++) { // reescaleo posiciones a nueva densidad
+        for (int k = 0; k < 4 * N; k++) { // reescaleo posiciones a nueva densidad
             rxyz[k] *= sf;
         }
         init_vel(vxyz, &Temp, &Ekin);
@@ -57,7 +57,7 @@ int main()
             velocity_verlet(rxyz, vxyz, fxyz, &Epot, &Ekin, &Pres, &Temp, Rho, cell_V, cell_L);
 
             sf = sqrt(T0 / Temp);
-            for (int k = 0; k < 3 * N; k++) { // reescaleo de velocidades
+            for (int k = 0; k < 4 * N; k++) { // reescaleo de velocidades
                 vxyz[k] *= sf;
             }
         }
@@ -69,7 +69,7 @@ int main()
             velocity_verlet(rxyz, vxyz, fxyz, &Epot, &Ekin, &Pres, &Temp, Rho, cell_V, cell_L);
 
             sf = sqrt(T0 / Temp);
-            for (int k = 0; k < 3 * N; k++) { // reescaleo de velocidades
+            for (int k = 0; k < 4 * N; k++) { // reescaleo de velocidades
                 vxyz[k] *= sf;
             }
 
@@ -83,7 +83,7 @@ int main()
 
                 fprintf(file_thermo, "%f %f %f %f %f\n", t, Temp, Pres, Epot, Epot + Ekin);
                 fprintf(file_xyz, "%d\n\n", N);
-                for (int k = 0; k < 3 * N; k += 3) {
+                for (int k = 0; k < 4 * N; k += 4) {
                     fprintf(file_xyz, "Ar %e %e %e\n", rxyz[k + 0], rxyz[k + 1], rxyz[k + 2]);
                 }
             }
