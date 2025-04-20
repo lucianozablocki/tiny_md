@@ -105,19 +105,19 @@ static inline __m256d minimum_image_avx(__m256d cords, double cell_length) {
     __m256d half_cell_length = _mm256_set1_pd(0.5 * cell_length);
     __m256d full_cell_length = _mm256_set1_pd(cell_length);
 
-    // mask_lt: cords <= -0.5 * cell_length
+    // mask_le: cords <= -0.5 * cell_length
     __m256d minus_half_cell_length = _mm256_sub_pd(_mm256_setzero_pd(), half_cell_length);
-    __m256d mask_lt = _mm256_cmp_pd(cords, minus_half_cell_length, _CMP_LE_OQ);
+    __m256d mask_le = _mm256_cmp_pd(cords, minus_half_cell_length, _CMP_LE_OQ);
 
     // mask_gt: cords > 0.5 * cell_length
     __m256d mask_gt = _mm256_cmp_pd(cords, half_cell_length, _CMP_GT_OQ);
 
-    // Apply cocordscordsections
+    // compution addition and substraction branches
     __m256d add_cell_length = _mm256_add_pd(cords, full_cell_length);
     __m256d sub_cell_length = _mm256_sub_pd(cords, full_cell_length);
 
-    // Blend cordsesults
-    __m256d cords_tmp = _mm256_blendv_pd(cords, add_cell_length, mask_lt);
+    // Apply masks
+    __m256d cords_tmp = _mm256_blendv_pd(cords, add_cell_length, mask_le);
     return _mm256_blendv_pd(cords_tmp, sub_cell_length, mask_gt);
 }
 
@@ -157,7 +157,7 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
             __m128d total = _mm_add_sd(lo128, hi128); // [da+dc+db+dd|db+dd+db+dd]
             double rij2_scalar;
             _mm_store_sd(&rij2_scalar, total); // [da+dc+db+dd] 
-            
+
             // Esto vale mas la pena con precision-simple
             //__m256d sumpd = _mm256_hadd_pd(rij2,rij2);
             //double rij2_scalar = _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(sumpd,0), _mm256_extractf128_pd(sumpd,1)));
@@ -193,7 +193,6 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
 
 static inline double pbc(double cordi, const double cell_length)
 {
-    // condiciones periodicas de contorno coordenadas entre [0,L)
     if (cordi <= 0) {
         cordi += cell_length;
     } else if (cordi > cell_length) {
@@ -202,6 +201,24 @@ static inline double pbc(double cordi, const double cell_length)
     return cordi;
 }
 
+static inline __m256d pbc_avx(__m256d cords, const double cell_length)
+{
+    __m256d full_cell_length = _mm256_set1_pd(cell_length);
+
+    // mask_le: cords <= cell_length
+    __m256d mask_lt = _mm256_cmp_pd(cords, full_cell_length, _CMP_LE_OQ);
+
+    // mask_gt: cords > cell_length
+    __m256d mask_gt = _mm256_cmp_pd(cords, full_cell_length, _CMP_GT_OQ);
+
+    // compution addition and substraction branches
+    __m256d add_cell_length = _mm256_add_pd(cords, full_cell_length);
+    __m256d sub_cell_length = _mm256_sub_pd(cords, full_cell_length);
+
+    // Apply masks
+    __m256d cords_tmp = _mm256_blendv_pd(cords, add_cell_length, mask_lt);
+    return _mm256_blendv_pd(cords_tmp, sub_cell_length, mask_gt);
+}
 
 void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restrict fxyz, double* epot,
         double* ekin, double* pres, double* temp, const double rho,
@@ -214,18 +231,15 @@ void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restr
         rxyz[i + 2] += vxyz[i + 2] * DT + 0.5 * fxyz[i + 2] * DT * DT;
         rxyz[i + 3] += vxyz[i + 3] * DT + 0.5 * fxyz[i + 3] * DT * DT;
 
-        // TODO: Se me ocurre que esta bloque se puede sacar, porque es el unico que no podemos
-        // vectorizar facilmente, debido a la llamada a pbc, que si bien esta inline capaz produce
-        // que se desvien algunas lanes que van en paralelo debido al branching.
-        rxyz[i + 0] = pbc(rxyz[i + 0], L);
-        rxyz[i + 1] = pbc(rxyz[i + 1], L);
-        rxyz[i + 2] = pbc(rxyz[i + 2], L);
-        rxyz[i + 3] = pbc(rxyz[i + 3], L);
-
         vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
         vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
         vxyz[i + 2] += 0.5 * fxyz[i + 2] * DT;
         vxyz[i + 3] += 0.5 * fxyz[i + 3] * DT;
+    }
+
+    for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
+        __m256d r = _mm256_loadu_pd(rxyz + i);
+        r = pbc_avx(r, L);
     }
 
     forces(rxyz, fxyz, epot, pres, temp, rho, V, L); // actualizo fuerzas
