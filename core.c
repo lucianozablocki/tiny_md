@@ -150,17 +150,21 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
             // rij2 = rij * rij
             __m256d rij2 = _mm256_mul_pd(rij, rij); // [da|db|dc|dd]
 
-            __m256d shuf1 = _mm256_permute2f128_pd(rij2, rij2, 1); // [dc|dd|da|db]
-            __m256d sum1 = _mm256_add_pd(rij2, shuf1); // [da+dc|db+dd|dc+da|dd+db]
-            __m128d lo128 = _mm256_castpd256_pd128(sum1); // [da+dc|db+dd]
-            __m128d hi128 = _mm_unpackhi_pd(lo128, lo128); // [db+dd|db+dd]
-            __m128d total = _mm_add_sd(lo128, hi128); // [da+dc+db+dd|db+dd+db+dd]
-            double rij2_scalar;
-            _mm_store_sd(&rij2_scalar, total); // [da+dc+db+dd] 
+            //__m256d shuf1 = _mm256_permute2f128_pd(rij2, rij2, 1); // [dc|dd|da|db]
+            //__m256d sum1 = _mm256_add_pd(rij2, shuf1); // [da+dc|db+dd|dc+da|dd+db]
+            //__m128d lo128 = _mm256_castpd256_pd128(sum1); // [da+dc|db+dd]
+            //__m128d hi128 = _mm_unpackhi_pd(lo128, lo128); // [db+dd|db+dd]
+            //__m128d total = _mm_add_sd(lo128, hi128); // [da+dc+db+dd|db+dd+db+dd]
+            //double rij2_scalar;
+            //_mm_store_sd(&rij2_scalar, total); // [da+dc+db+dd] 
 
             // Esto vale mas la pena con precision-simple
             //__m256d sumpd = _mm256_hadd_pd(rij2,rij2);
             //double rij2_scalar = _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(sumpd,0), _mm256_extractf128_pd(sumpd,1)));
+
+            double r[4];
+            _mm256_storeu_pd(r, rij2);
+            double rij2_scalar = r[0] + r[1] + r[2] + r[3];
 
             // Mask if rij2 <= rcut2
             if (rij2_scalar <= rcut2) {
