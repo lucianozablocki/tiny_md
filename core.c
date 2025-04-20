@@ -230,7 +230,9 @@ void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restr
         rxyz[i + 1] += vxyz[i + 1] * DT + 0.5 * fxyz[i + 1] * DT * DT;
         rxyz[i + 2] += vxyz[i + 2] * DT + 0.5 * fxyz[i + 2] * DT * DT;
         rxyz[i + 3] += vxyz[i + 3] * DT + 0.5 * fxyz[i + 3] * DT * DT;
+	}
 
+    for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
         vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
         vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
         vxyz[i + 2] += 0.5 * fxyz[i + 2] * DT;
