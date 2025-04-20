@@ -173,6 +173,9 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
 
                 double fr = 24.0 * r2inv * r6inv * (2.0 * r6inv - 1.0);
 
+                *epot += 4.0 * r6inv * (r6inv - 1.0) - ECUT;
+                pres_vir += fr * rij2_scalar;
+
                 __m256d frc = _mm256_mul_pd(_mm256_set1_pd(fr), rij);
 
                 __m256d fi = _mm256_loadu_pd(fxyz + i);
@@ -183,9 +186,6 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
 
                 _mm256_storeu_pd(fxyz + i, fi);
                 _mm256_storeu_pd(fxyz + j, fj);
-
-                *epot += 4.0 * r6inv * (r6inv - 1.0) - ECUT;
-                pres_vir += fr * rij2_scalar;
             }
         }
     }
