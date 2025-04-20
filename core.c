@@ -5,58 +5,52 @@
 #include <stdlib.h> // rand()
 #include <immintrin.h>
 
-#define ECUT (4.0 * (pow(RCUT, -12) - pow(RCUT, -6)))
+#define ECUT (4.0f * (powf(RCUT, -12.0f) - powf(RCUT, -6.0f)))
 
 
-void init_pos(double* rxyz, const double rho)
+void init_pos(float* rxyz, const float rho)
 {
-    // inicialización de las posiciones de los átomos en un cristal FCC
-
-    double a = cbrt(4.0 / rho);
-    int nucells = round(cbrt((double)N / 4.0));
+    float a = cbrtf(4.0f / rho);
+    int nucells = roundf(cbrtf((float)N / 4.0f));
     int idx = 0;
 
     for (int i = 0; i < nucells; i++) {
         for (int j = 0; j < nucells; j++) {
             for (int k = 0; k < nucells; k++) {
-                rxyz[idx + 0] = i * a; // x
-                rxyz[idx + 1] = j * a; // y
-                rxyz[idx + 2] = k * a; // z
-                rxyz[idx + 3] = 0; // z
-                                   // del mismo átomo
-                rxyz[idx + 4] = (i + 0.5) * a;
-                rxyz[idx + 5] = (j + 0.5) * a;
-                rxyz[idx + 6] = k * a;
-                rxyz[idx + 7] = 0; // z
+                rxyz[idx + 0] = i * a;
+                rxyz[idx + 1] = j * a;
+                rxyz[idx + 2] = k * a;
+                rxyz[idx + 3] = 0.0f;
 
-                rxyz[idx + 8] = (i + 0.5) * a;
+                rxyz[idx + 4] = (i + 0.5f) * a;
+                rxyz[idx + 5] = (j + 0.5f) * a;
+                rxyz[idx + 6] = k * a;
+                rxyz[idx + 7] = 0.0f;
+
+                rxyz[idx + 8] = (i + 0.5f) * a;
                 rxyz[idx + 9] = j * a;
-                rxyz[idx + 10] = (k + 0.5) * a;
-                rxyz[idx + 11] = 0; // z
+                rxyz[idx + 10] = (k + 0.5f) * a;
+                rxyz[idx + 11] = 0.0f;
 
                 rxyz[idx + 12] = i * a;
-                rxyz[idx + 13] = (j + 0.5) * a;
-                rxyz[idx + 14] = (k + 0.5) * a;
-                rxyz[idx + 15] = 0; // z
-
+                rxyz[idx + 13] = (j + 0.5f) * a;
+                rxyz[idx + 14] = (k + 0.5f) * a;
+                rxyz[idx + 15] = 0.0f;
                 idx += 16;
             }
         }
     }
 }
 
-
-void init_vel(double* vxyz, double* temp, double* ekin)
+void init_vel(float* vxyz, float* temp, float* ekin)
 {
-    // inicialización de velocidades aleatorias
-
-    double sf, sumvx = 0.0, sumvy = 0.0, sumvz = 0.0, sumvw = 0.0, sumv2 = 0.0;
+    float sf, sumvx = 0.0f, sumvy = 0.0f, sumvz = 0.0f, sumvw = 0.0f, sumv2 = 0.0f;
 
     for (int i = 0; i < 4 * N; i += 4) {
-        vxyz[i + 0] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 1] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 2] = rand() / (double)RAND_MAX - 0.5;
-        vxyz[i + 3] = 0;
+        vxyz[i + 0] = rand() / (float)RAND_MAX - 0.5f;
+        vxyz[i + 1] = rand() / (float)RAND_MAX - 0.5f;
+        vxyz[i + 2] = rand() / (float)RAND_MAX - 0.5f;
+        vxyz[i + 3] = 0.0f;
     }
 
     for (int i = 0; i < 4 * N; i += 4) {
@@ -67,20 +61,19 @@ void init_vel(double* vxyz, double* temp, double* ekin)
     }
 
     for (int i = 0; i < 4 * N; i += 4) {
-        sumv2 += vxyz[i + 0] * vxyz[i + 0] + vxyz[i + 1] * vxyz[i + 1]
-            + vxyz[i + 2] * vxyz[i + 3] + vxyz[i + 3] * vxyz[i + 3];
+        sumv2 += vxyz[i + 0] * vxyz[i + 0] + vxyz[i + 1] * vxyz[i + 1] +
+            vxyz[i + 2] * vxyz[i + 2] + vxyz[i + 3] * vxyz[i + 3];
     }
 
-    sumvx /= (double)N;
-    sumvy /= (double)N;
-    sumvz /= (double)N;
-    sumvw /= (double)N;
-    *temp = sumv2 / (3.0 * N);
-    *ekin = 0.5 * sumv2;
-    sf = sqrt(T0 / *temp);
+    sumvx /= (float)N;
+    sumvy /= (float)N;
+    sumvz /= (float)N;
+    sumvw /= (float)N;
+    *temp = sumv2 / (3.0f * N);
+    *ekin = 0.5f * sumv2;
+    sf = sqrtf(T0 / *temp);
 
-    for (int i = 0; i < 4 * N; i += 4) { // elimina la velocidad del centro de masa
-                                         // y ajusta la temperatura
+    for (int i = 0; i < 4 * N; i += 4) {
         vxyz[i + 0] = (vxyz[i + 0] - sumvx) * sf;
         vxyz[i + 1] = (vxyz[i + 1] - sumvy) * sf;
         vxyz[i + 2] = (vxyz[i + 2] - sumvz) * sf;
@@ -88,170 +81,155 @@ void init_vel(double* vxyz, double* temp, double* ekin)
     }
 }
 
+static inline __m128 minimum_image_avx(__m128 cords, float cell_length) {
+    __m128 half_cell_length = _mm_set1_ps(0.5f * cell_length);
+    __m128 full_cell_length = _mm_set1_ps(cell_length);
 
-static inline double minimum_image(double cordi, const double cell_length)
+    // mask_le: cords <= -0.5 * cell_length
+    __m128 minus_half_cell_length = _mm_sub_ps(_mm_setzero_ps(), half_cell_length);
+    __m128 mask_le = _mm_cmple_ps(cords, minus_half_cell_length);
+
+    // mask_gt: cords > 0.5 * cell_length
+    __m128 mask_gt = _mm_cmpgt_ps(cords, half_cell_length);
+
+    // computation addition and subtraction branches
+    __m128 add_cell_length = _mm_add_ps(cords, full_cell_length);
+    __m128 sub_cell_length = _mm_sub_ps(cords, full_cell_length);
+
+    // Apply masks
+    __m128 cords_tmp = _mm_blendv_ps(cords, add_cell_length, mask_le);
+    return _mm_blendv_ps(cords_tmp, sub_cell_length, mask_gt);
+}
+
+static inline float minimum_image(float cordi, const float cell_length)
 {
     // imagen más cercana
 
-    if (cordi <= -0.5 * cell_length) {
+    if (cordi <= -0.5f * cell_length) {
         cordi += cell_length;
-    } else if (cordi > 0.5 * cell_length) {
+    } else if (cordi > 0.5f * cell_length) {
         cordi -= cell_length;
     }
     return cordi;
 }
 
-static inline __m256d minimum_image_avx(__m256d cords, double cell_length) {
-    __m256d half_cell_length = _mm256_set1_pd(0.5 * cell_length);
-    __m256d full_cell_length = _mm256_set1_pd(cell_length);
 
-    // mask_le: cords <= -0.5 * cell_length
-    __m256d minus_half_cell_length = _mm256_sub_pd(_mm256_setzero_pd(), half_cell_length);
-    __m256d mask_le = _mm256_cmp_pd(cords, minus_half_cell_length, _CMP_LE_OQ);
-
-    // mask_gt: cords > 0.5 * cell_length
-    __m256d mask_gt = _mm256_cmp_pd(cords, half_cell_length, _CMP_GT_OQ);
-
-    // compution addition and substraction branches
-    __m256d add_cell_length = _mm256_add_pd(cords, full_cell_length);
-    __m256d sub_cell_length = _mm256_sub_pd(cords, full_cell_length);
-
-    // Apply masks
-    __m256d cords_tmp = _mm256_blendv_pd(cords, add_cell_length, mask_le);
-    return _mm256_blendv_pd(cords_tmp, sub_cell_length, mask_gt);
-}
-
-
-void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict epot, double* restrict pres,
-        const double* restrict temp, const double rho, const double V, const double L)
+void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
+        const float* temp, const float rho, const float V, const float L)
 {
     // calcula las fuerzas LJ (12-6)
 
     for (int i = 0; i < 4 * N; i++) {
-        fxyz[i] = 0.0;
+        fxyz[i] = 0.0f;
     }
-    double pres_vir = 0.0;
-    double rcut2 = RCUT * RCUT;
-    *epot = 0.0;
+    float pres_vir = 0.0f;
+    float rcut2 = RCUT * RCUT;
+    *epot = 0.0f;
 
     for (int i = 0; i < 4 * (N - 1); i += 4) {
 
-        __m256d ri = _mm256_loadu_pd(rxyz + i);
+        __m128 ri = _mm_loadu_ps(rxyz + i);
 
         for (int j = i + 4; j < 4 * N; j += 4) {
 
-            __m256d rj = _mm256_loadu_pd(rxyz + j);
+            __m128 rj = _mm_loadu_ps(rxyz + j);
 
-            // rij = ri - rj
-            __m256d rij = _mm256_sub_pd(ri, rj);
-
+            // distancia mínima entre r_i y r_j
+            __m128 rij = _mm_sub_ps(ri, rj);
             rij = minimum_image_avx(rij, L);
 
-            // rij2 = rij * rij
-            __m256d rij2 = _mm256_mul_pd(rij, rij); // [da|db|dc|dd]
+            __m128 rij2 = _mm_mul_ps(rij, rij); // [fa|fb|fc|fd]
 
-            __m256d shuf1 = _mm256_permute2f128_pd(rij2, rij2, 1); // [dc|dd|da|db]
-            __m256d sum1 = _mm256_add_pd(rij2, shuf1); // [da+dc|db+dd|dc+da|dd+db]
-            __m128d lo128 = _mm256_castpd256_pd128(sum1); // [da+dc|db+dd]
-            __m128d hi128 = _mm_unpackhi_pd(lo128, lo128); // [db+dd|db+dd]
-            __m128d total = _mm_add_sd(lo128, hi128); // [da+dc+db+dd|db+dd+db+dd]
-            double rij2_scalar;
-            _mm_store_sd(&rij2_scalar, total); // [da+dc+db+dd] 
+            //__m128 sum1 = _mm_hadd_ps(rij2, rij2); // [fa+fb|fc+fd|fa+fb|fc+fd]
+            //__m128 sum2 = _mm_hadd_ps(sum1, sum1); // [fa+fb+fc+fd|...|...|...]
+            //float rij2_scalar = _mm_cvtss_f32(sum2);
 
-            // Esto vale mas la pena con precision-simple
-            //__m256d sumpd = _mm256_hadd_pd(rij2,rij2);
-            //double rij2_scalar = _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(sumpd,0), _mm256_extractf128_pd(sumpd,1)));
+            // This one is faster
+            float r[4];
+            _mm_storeu_ps(r, rij2);
+            float rij2_scalar = r[0] + r[1] + r[2] + r[3];
+
 
             // Mask if rij2 <= rcut2
             if (rij2_scalar <= rcut2) {
-                double r2inv = 1.0 / rij2_scalar;
-                double r6inv = r2inv * r2inv * r2inv;
+                float r2inv = 1.0f / rij2_scalar;
+                float r6inv = r2inv * r2inv * r2inv;
 
-                double fr = 24.0 * r2inv * r6inv * (2.0 * r6inv - 1.0);
+                float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                __m256d frc = _mm256_mul_pd(_mm256_set1_pd(fr), rij);
+                __m128 frc = _mm_set1_ps(fr);  // Store force scalar in a 128-bit register
+                frc = _mm_mul_ps(frc, rij);     // Multiply by rij vector
 
-                __m256d fi = _mm256_loadu_pd(fxyz + i);
-                __m256d fj = _mm256_loadu_pd(fxyz + j);
+                __m128 fi = _mm_loadu_ps(fxyz + i);
+                __m128 fj = _mm_loadu_ps(fxyz + j);
 
-                fi = _mm256_add_pd(fi, frc);
-                fj = _mm256_sub_pd(fj, frc);
+                fi = _mm_add_ps(fi, frc);
+                fj = _mm_sub_ps(fj, frc);
 
-                _mm256_storeu_pd(fxyz + i, fi);
-                _mm256_storeu_pd(fxyz + j, fj);
+                _mm_storeu_ps(fxyz + i, fi);
+                _mm_storeu_ps(fxyz + j, fj);
 
-                *epot += 4.0 * r6inv * (r6inv - 1.0) - ECUT;
+                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
                 pres_vir += fr * rij2_scalar;
             }
         }
     }
-
-    pres_vir /= (V * 3.0);
+    pres_vir /= (V * 3.0f);
     *pres = *temp * rho + pres_vir;
 }
 
 
-static inline double pbc(double cordi, const double cell_length)
+static inline __m256 pbc_avx(__m256 coords, const float cell_length)
 {
-    if (cordi <= 0) {
-        cordi += cell_length;
-    } else if (cordi > cell_length) {
-        cordi -= cell_length;
-    }
-    return cordi;
-}
+    __m256 full_cell_length = _mm256_set1_ps(cell_length);
 
-static inline __m256d pbc_avx(__m256d cords, const double cell_length)
-{
-    __m256d full_cell_length = _mm256_set1_pd(cell_length);
+    // mask_lt: coords <= cell_length
+    __m256 mask_lt = _mm256_cmp_ps(coords, full_cell_length, _CMP_LE_OQ);
 
-    // mask_le: cords <= cell_length
-    __m256d mask_lt = _mm256_cmp_pd(cords, full_cell_length, _CMP_LE_OQ);
+    // mask_gt: coords > cell_length
+    __m256 mask_gt = _mm256_cmp_ps(coords, full_cell_length, _CMP_GT_OQ);
 
-    // mask_gt: cords > cell_length
-    __m256d mask_gt = _mm256_cmp_pd(cords, full_cell_length, _CMP_GT_OQ);
-
-    // compution addition and substraction branches
-    __m256d add_cell_length = _mm256_add_pd(cords, full_cell_length);
-    __m256d sub_cell_length = _mm256_sub_pd(cords, full_cell_length);
+    // compute addition and subtraction branches
+    __m256 add_cell_length = _mm256_add_ps(coords, full_cell_length);
+    __m256 sub_cell_length = _mm256_sub_ps(coords, full_cell_length);
 
     // Apply masks
-    __m256d cords_tmp = _mm256_blendv_pd(cords, add_cell_length, mask_lt);
-    return _mm256_blendv_pd(cords_tmp, sub_cell_length, mask_gt);
+    __m256 coords_tmp = _mm256_blendv_ps(coords, add_cell_length, mask_lt);
+    return _mm256_blendv_ps(coords_tmp, sub_cell_length, mask_gt);
 }
 
-void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restrict fxyz, double* epot,
-        double* ekin, double* pres, double* temp, const double rho,
-        const double V, const double L)
+void velocity_verlet(float* restrict rxyz, float* restrict vxyz, float* restrict fxyz, float* epot,
+        float* ekin, float* pres, float* temp, const float rho,
+        const float V, const float L)
 {
 
     for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
-        rxyz[i + 0] += vxyz[i + 0] * DT + 0.5 * fxyz[i + 0] * DT * DT;
-        rxyz[i + 1] += vxyz[i + 1] * DT + 0.5 * fxyz[i + 1] * DT * DT;
-        rxyz[i + 2] += vxyz[i + 2] * DT + 0.5 * fxyz[i + 2] * DT * DT;
-        rxyz[i + 3] += vxyz[i + 3] * DT + 0.5 * fxyz[i + 3] * DT * DT;
-	}
-
-    for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
-        vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
-        vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
-        vxyz[i + 2] += 0.5 * fxyz[i + 2] * DT;
-        vxyz[i + 3] += 0.5 * fxyz[i + 3] * DT;
+        rxyz[i + 0] += vxyz[i + 0] * DT + 0.5f * fxyz[i + 0] * DT * DT;
+        rxyz[i + 1] += vxyz[i + 1] * DT + 0.5f * fxyz[i + 1] * DT * DT;
+        rxyz[i + 2] += vxyz[i + 2] * DT + 0.5f * fxyz[i + 2] * DT * DT;
+        rxyz[i + 3] += vxyz[i + 3] * DT + 0.5f * fxyz[i + 3] * DT * DT;
     }
 
     for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
-        __m256d r = _mm256_loadu_pd(rxyz + i);
+        vxyz[i + 0] += 0.5f * fxyz[i + 0] * DT;
+        vxyz[i + 1] += 0.5f * fxyz[i + 1] * DT;
+        vxyz[i + 2] += 0.5f * fxyz[i + 2] * DT;
+        vxyz[i + 3] += 0.5f * fxyz[i + 3] * DT;
+    }
+
+    for (int i = 0; i < 4 * N; i += 8) { // actualizo posiciones
+        __m256 r = _mm256_loadu_ps(rxyz + i);
         r = pbc_avx(r, L);
     }
 
     forces(rxyz, fxyz, epot, pres, temp, rho, V, L); // actualizo fuerzas
 
-    double sumv2 = 0.0;
+    float sumv2 = 0.0f;
     for (int i = 0; i < 4 * N; i += 4) { // actualizo velocidades
-        vxyz[i + 0] += 0.5 * fxyz[i + 0] * DT;
-        vxyz[i + 1] += 0.5 * fxyz[i + 1] * DT;
-        vxyz[i + 2] += 0.5 * fxyz[i + 2] * DT;
-        vxyz[i + 3] += 0.5 * fxyz[i + 3] * DT;
+        vxyz[i + 0] += 0.5f * fxyz[i + 0] * DT;
+        vxyz[i + 1] += 0.5f * fxyz[i + 1] * DT;
+        vxyz[i + 2] += 0.5f * fxyz[i + 2] * DT;
+        vxyz[i + 3] += 0.5f * fxyz[i + 3] * DT;
     }
 
     for (int i = 0; i < 4 * N; i += 4) { // actualizo velocidades
@@ -259,6 +237,6 @@ void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restr
             + vxyz[i + 2] * vxyz[i + 2] + vxyz[i + 3] * vxyz[i + 3];
     }
 
-    *ekin = 0.5 * sumv2;
-    *temp = sumv2 / (3.0 * N);
+    *ekin = 0.5f * sumv2;
+    *temp = sumv2 / (3.0f * N);
 }
