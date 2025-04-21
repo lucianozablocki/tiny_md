@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "mtwister.h"
 
 
 int main()
@@ -29,12 +30,12 @@ int main()
     printf("# densidad, volumen, energía potencial media, presión media\n");
     fprintf(file_thermo, "# t Temp Pres Epot Etot\n");
 
-    srand(SEED);
     double t = 0.0, sf;
     double Rhob;
     Rho = RHOI;
     init_pos(rxyz, Rho);
     double start = wtime();
+    MTRand r = seedRand(SEED);
     for (int m = 0; m < 9; m++) {
         Rhob = Rho;
         Rho = RHOI - 0.1 * (double)m;
@@ -49,7 +50,7 @@ int main()
         for (int k = 0; k < 4 * N; k++) { // reescaleo posiciones a nueva densidad
             rxyz[k] *= sf;
         }
-        init_vel(vxyz, &Temp, &Ekin);
+        init_vel(vxyz, &Temp, &Ekin, &r);
         forces(rxyz, fxyz, &Epot, &Pres, &Temp, Rho, cell_V, cell_L);
 
         for (i = 1; i < TEQ; i++) { // loop de equilibracion
