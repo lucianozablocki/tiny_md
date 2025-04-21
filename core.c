@@ -2,8 +2,8 @@
 #include "parameters.h"
 
 #include <math.h>
-#include <stdlib.h> // rand()
 #include <immintrin.h>
+#include "mtwister.h"
 
 #define ECUT (4.0f * (powf(RCUT, -12.0f) - powf(RCUT, -6.0f)))
 
@@ -43,14 +43,14 @@ void init_pos(float* rxyz, const float rho)
 }
 
 
-void init_vel(float* vxyz, float* temp, float* ekin)
+void init_vel(float* vxyz, float* temp, float* ekin, MTRand* r)
 {
     float sf, sumvx = 0.0f, sumvy = 0.0f, sumvz = 0.0f, sumvw = 0.0f, sumv2 = 0.0f;
 
     for (int i = 0; i < 4 * N; i += 4) {
-        vxyz[i + 0] = rand() / (float)RAND_MAX - 0.5f;
-        vxyz[i + 1] = rand() / (float)RAND_MAX - 0.5f;
-        vxyz[i + 2] = rand() / (float)RAND_MAX - 0.5f;
+        vxyz[i + 0] = genRand(r) - 0.5;
+        vxyz[i + 1] = genRand(r) - 0.5;
+        vxyz[i + 2] = genRand(r) - 0.5;
         vxyz[i + 3] = 0.0f;
     }
 

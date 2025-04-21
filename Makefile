@@ -5,7 +5,7 @@ LDFLAGS	= -lm
 
 TARGETS	= tiny_md viz
 SOURCES	= $(shell echo *.c)
-OBJECTS = core.o wtime.o
+OBJECTS = core.o wtime.o mtwister.o
 
 all: $(TARGETS)
 
