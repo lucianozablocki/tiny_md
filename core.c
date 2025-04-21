@@ -42,6 +42,7 @@ void init_pos(float* rxyz, const float rho)
     }
 }
 
+
 void init_vel(float* vxyz, float* temp, float* ekin)
 {
     float sf, sumvx = 0.0f, sumvy = 0.0f, sumvz = 0.0f, sumvw = 0.0f, sumv2 = 0.0f;
@@ -81,6 +82,7 @@ void init_vel(float* vxyz, float* temp, float* ekin)
     }
 }
 
+
 static inline __m128 minimum_image_avx(__m128 cords, float cell_length) {
     __m128 half_cell_length = _mm_set1_ps(0.5f * cell_length);
     __m128 full_cell_length = _mm_set1_ps(cell_length);
@@ -99,18 +101,6 @@ static inline __m128 minimum_image_avx(__m128 cords, float cell_length) {
     // Apply masks
     __m128 cords_tmp = _mm_blendv_ps(cords, add_cell_length, mask_le);
     return _mm_blendv_ps(cords_tmp, sub_cell_length, mask_gt);
-}
-
-static inline float minimum_image(float cordi, const float cell_length)
-{
-    // imagen más cercana
-
-    if (cordi <= -0.5f * cell_length) {
-        cordi += cell_length;
-    } else if (cordi > 0.5f * cell_length) {
-        cordi -= cell_length;
-    }
-    return cordi;
 }
 
 
@@ -140,25 +130,18 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
             __m128 rij2 = _mm_mul_ps(rij, rij); // [fa|fb|fc|fd]
 
-            //__m128 sum1 = _mm_hadd_ps(rij2, rij2); // [fa+fb|fc+fd|fa+fb|fc+fd]
-            //__m128 sum2 = _mm_hadd_ps(sum1, sum1); // [fa+fb+fc+fd|...|...|...]
-            //float rij2_scalar = _mm_cvtss_f32(sum2);
-
-            // This one is faster
             float r[4];
             _mm_storeu_ps(r, rij2);
             float rij2_scalar = r[0] + r[1] + r[2] + r[3];
 
-
-            // Mask if rij2 <= rcut2
             if (rij2_scalar <= rcut2) {
                 float r2inv = 1.0f / rij2_scalar;
                 float r6inv = r2inv * r2inv * r2inv;
 
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                __m128 frc = _mm_set1_ps(fr);  // Store force scalar in a 128-bit register
-                frc = _mm_mul_ps(frc, rij);     // Multiply by rij vector
+                __m128 frc = _mm_set1_ps(fr);
+                frc = _mm_mul_ps(frc, rij);
 
                 __m128 fi = _mm_loadu_ps(fxyz + i);
                 __m128 fj = _mm_loadu_ps(fxyz + j);
