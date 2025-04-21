@@ -3,9 +3,9 @@ CFLAGS	= -O0
 WFLAGS	= -std=c11 -Wall -Wextra -g
 LDFLAGS	= -lm
 
-TARGETS	= tiny_md viz
+TARGETS	= tiny_md viz mtwiste
 SOURCES	= $(shell echo *.c)
-OBJECTS = core.o wtime.o a-mtwister.o
+OBJECTS = core.o wtime.o mtwister.o
 
 all: $(TARGETS)
 
