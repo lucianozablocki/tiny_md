@@ -89,18 +89,6 @@ void init_vel(double* vxyz, double* temp, double* ekin)
 }
 
 
-static inline double minimum_image(double cordi, const double cell_length)
-{
-    // imagen más cercana
-
-    if (cordi <= -0.5 * cell_length) {
-        cordi += cell_length;
-    } else if (cordi > 0.5 * cell_length) {
-        cordi -= cell_length;
-    }
-    return cordi;
-}
-
 static inline __m256d minimum_image_avx(__m256d cords, double cell_length) {
     __m256d half_cell_length = _mm256_set1_pd(0.5 * cell_length);
     __m256d full_cell_length = _mm256_set1_pd(cell_length);
@@ -150,18 +138,6 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
             // rij2 = rij * rij
             __m256d rij2 = _mm256_mul_pd(rij, rij); // [da|db|dc|dd]
 
-            //__m256d shuf1 = _mm256_permute2f128_pd(rij2, rij2, 1); // [dc|dd|da|db]
-            //__m256d sum1 = _mm256_add_pd(rij2, shuf1); // [da+dc|db+dd|dc+da|dd+db]
-            //__m128d lo128 = _mm256_castpd256_pd128(sum1); // [da+dc|db+dd]
-            //__m128d hi128 = _mm_unpackhi_pd(lo128, lo128); // [db+dd|db+dd]
-            //__m128d total = _mm_add_sd(lo128, hi128); // [da+dc+db+dd|db+dd+db+dd]
-            //double rij2_scalar;
-            //_mm_store_sd(&rij2_scalar, total); // [da+dc+db+dd] 
-
-            // Esto vale mas la pena con precision-simple
-            //__m256d sumpd = _mm256_hadd_pd(rij2,rij2);
-            //double rij2_scalar = _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(sumpd,0), _mm256_extractf128_pd(sumpd,1)));
-
             double r[4];
             _mm256_storeu_pd(r, rij2);
             double rij2_scalar = r[0] + r[1] + r[2] + r[3];
@@ -194,16 +170,6 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
     *pres = *temp * rho + pres_vir;
 }
 
-
-static inline double pbc(double cordi, const double cell_length)
-{
-    if (cordi <= 0) {
-        cordi += cell_length;
-    } else if (cordi > cell_length) {
-        cordi -= cell_length;
-    }
-    return cordi;
-}
 
 static inline __m256d pbc_avx(__m256d cords, const double cell_length)
 {
