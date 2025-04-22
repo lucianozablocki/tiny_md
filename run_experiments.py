@@ -25,7 +25,7 @@ for m in range(1,M+1):
 
 runs = [30,25,20,15,10,5]
 opt_flags = ['-Ofast']
-compilers = ['gcc', 'clang', 'icc']
+compilers = ['icc', 'clang', 'gcc']
 results = []
 
 for compiler in compilers:
