@@ -18,14 +18,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-M = 5
+M = 6
 Ns = []
 for m in range(1,M+1):
     Ns.append(4*m**3)
 
-runs = [20,15,10,5,2]
-opt_flags = ['-Ofast']
-compilers = ['gcc', 'clang']
+runs = [30,25,20,15,10,5]
+opt_flags = ['-O1 -ffast-math -ftree-vectorize -funroll-loops']
+compilers = ['icc', 'clang', 'gcc']
 results = []
 
 for compiler in compilers:

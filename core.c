@@ -48,9 +48,9 @@ void init_vel(float* vxyz, float* temp, float* ekin, MTRand* r)
     float sf, sumvx = 0.0f, sumvy = 0.0f, sumvz = 0.0f, sumvw = 0.0f, sumv2 = 0.0f;
 
     for (int i = 0; i < 4 * N; i += 4) {
-        vxyz[i + 0] = genRand(r) - 0.5;
-        vxyz[i + 1] = genRand(r) - 0.5;
-        vxyz[i + 2] = genRand(r) - 0.5;
+        vxyz[i + 0] = genRand(r) - 0.5f;
+        vxyz[i + 1] = genRand(r) - 0.5f;
+        vxyz[i + 2] = genRand(r) - 0.5f;
         vxyz[i + 3] = 0.0f;
     }
 
@@ -140,6 +140,9 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
+                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                pres_vir += fr * rij2_scalar;
+
                 __m128 frc = _mm_set1_ps(fr);
                 frc = _mm_mul_ps(frc, rij);
 
@@ -151,9 +154,6 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
                 _mm_storeu_ps(fxyz + i, fi);
                 _mm_storeu_ps(fxyz + j, fj);
-
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar;
             }
         }
     }
