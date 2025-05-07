@@ -17,9 +17,9 @@ int main()
     float Rho, cell_V, cell_L, tail, Etail, Ptail;
     float *rxyz, *vxyz, *fxyz; // variables microscopicas
 
-    rxyz = (float*)malloc(4 * N * sizeof(float));
-    vxyz = (float*)malloc(4 * N * sizeof(float));
-    fxyz = (float*)malloc(4 * N * sizeof(float));
+    rxyz = (float*)malloc(4 * (N+1) * sizeof(float));
+    vxyz = (float*)malloc(4 * (N+1) * sizeof(float));
+    fxyz = (float*)malloc(4 * (N+1) * sizeof(float));
 
     printf("# N\u00famero de part\u00edculas:      %d\n", N);
     printf("# Temperatura de referencia: %.2f\n", T0);
