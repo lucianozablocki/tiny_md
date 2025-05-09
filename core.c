@@ -142,9 +142,6 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_1;
-
                 __m128 frc = _mm_set1_ps(fr);
                 frc = _mm_mul_ps(frc, _mm256_castps256_ps128(rij));
 
@@ -156,16 +153,16 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
                 _mm_storeu_ps(fxyz + i, fi);
                 _mm_storeu_ps(fxyz + j, fj);
+
+                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                pres_vir += fr * rij2_scalar_1;
             }
 
-            if (rij2_scalar_2 <= rcut2 && j+4<N*4) {
+            if (rij2_scalar_2 <= rcut2) {
                 float r2inv = 1.0f / rij2_scalar_2;
                 float r6inv = r2inv * r2inv * r2inv;
 
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
-
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_2;
 
                 __m128 frc = _mm_set1_ps(fr);
                 frc = _mm_mul_ps(frc, _mm256_extractf128_ps(rij, 1));
@@ -178,6 +175,9 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
 
                 _mm_storeu_ps(fxyz + i + 4, fi);
                 _mm_storeu_ps(fxyz + j + 4, fj);
+
+                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                pres_vir += fr * rij2_scalar_2;
             }
         }
     }
