@@ -113,74 +113,86 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
         fxyz[i] = 0.0f;
     }
     float pres_vir = 0.0f;
+    float local_epot = 0.0f;
     float rcut2 = RCUT * RCUT;
-    *epot = 0.0f;
 
-    for (int i = 0; i < 4 * (N - 1); i += 8) {
+    #pragma omp parallel reduction(+:pres_vir, local_epot)
+    {
+        float* fxyz_local = (float*)calloc(4 * (N+1), sizeof(float));
 
-        __m256 ri = _mm256_loadu_ps(rxyz + i);
+        #pragma omp for nowait
+        for (int i = 0; i < 4 * (N - 1); i += 8) {
+            __m256 ri = _mm256_loadu_ps(rxyz + i);
 
-        for (int j = i + 4; j < 4 * N; j += 4) {
+            for (int j = i + 4; j < 4 * N; j += 4) {
+                __m256 rj = _mm256_loadu_ps(rxyz + j);
+                __m256 rij = _mm256_sub_ps(ri, rj);
+                rij = minimum_image_avx(rij, L);
 
-            __m256 rj = _mm256_loadu_ps(rxyz + j);
+                __m256 rij2 = _mm256_mul_ps(rij, rij);
 
-            // distancia mínima entre r_i y r_j
-            __m256 rij = _mm256_sub_ps(ri, rj);
-            rij = minimum_image_avx(rij, L);
+                float r1[4], r2[4];
+                _mm_storeu_ps(r1, _mm256_castps256_ps128(rij2));
+                _mm_storeu_ps(r2, _mm256_extractf128_ps(rij2, 1));
+                float rij2_scalar_1 = r1[0] + r1[1] + r1[2] + r1[3];
+                float rij2_scalar_2 = r2[0] + r2[1] + r2[2] + r2[3];
 
-            __m256 rij2 = _mm256_mul_ps(rij, rij); // [fa|fb|fc|fd]
+                if (rij2_scalar_1 <= rcut2) {
+                    float r2inv = 1.0f / rij2_scalar_1;
+                    float r6inv = r2inv * r2inv * r2inv;
+                    float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-            float r1[4], r2[4];
-            _mm_storeu_ps(r1, _mm256_castps256_ps128(rij2));
-            _mm_storeu_ps(r2, _mm256_extractf128_ps(rij2, 1));
-            float rij2_scalar_1 = r1[0] + r1[1] + r1[2] + r1[3];
-            float rij2_scalar_2 = r2[0] + r2[1] + r2[2] + r2[3];
+                    __m128 frc = _mm_set1_ps(fr);
+                    frc = _mm_mul_ps(frc, _mm256_castps256_ps128(rij));
 
-            if (rij2_scalar_1 <= rcut2) {
-                float r2inv = 1.0f / rij2_scalar_1;
-                float r6inv = r2inv * r2inv * r2inv;
+                    __m128 fi = _mm_loadu_ps(fxyz_local + i);
+                    __m128 fj = _mm_loadu_ps(fxyz_local + j);
 
-                float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
+                    fi = _mm_add_ps(fi, frc);
+                    fj = _mm_sub_ps(fj, frc);
 
-                __m128 frc = _mm_set1_ps(fr);
-                frc = _mm_mul_ps(frc, _mm256_castps256_ps128(rij));
+                    _mm_storeu_ps(fxyz_local + i, fi);
+                    _mm_storeu_ps(fxyz_local + j, fj);
 
-                __m128 fi = _mm_loadu_ps(fxyz + i);
-                __m128 fj = _mm_loadu_ps(fxyz + j);
+                    local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                    pres_vir += fr * rij2_scalar_1;
+                }
 
-                fi = _mm_add_ps(fi, frc);
-                fj = _mm_sub_ps(fj, frc);
+                if (rij2_scalar_2 <= rcut2) {
+                    float r2inv = 1.0f / rij2_scalar_2;
+                    float r6inv = r2inv * r2inv * r2inv;
+                    float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                _mm_storeu_ps(fxyz + i, fi);
-                _mm_storeu_ps(fxyz + j, fj);
+                    __m128 frc = _mm_set1_ps(fr);
+                    frc = _mm_mul_ps(frc, _mm256_extractf128_ps(rij, 1));
 
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_1;
-            }
+                    __m128 fi = _mm_loadu_ps(fxyz_local + i + 4);
+                    __m128 fj = _mm_loadu_ps(fxyz_local + j + 4);
 
-            if (rij2_scalar_2 <= rcut2) {
-                float r2inv = 1.0f / rij2_scalar_2;
-                float r6inv = r2inv * r2inv * r2inv;
+                    fi = _mm_add_ps(fi, frc);
+                    fj = _mm_sub_ps(fj, frc);
 
-                float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
+                    _mm_storeu_ps(fxyz_local + i + 4, fi);
+                    _mm_storeu_ps(fxyz_local + j + 4, fj);
 
-                __m128 frc = _mm_set1_ps(fr);
-                frc = _mm_mul_ps(frc, _mm256_extractf128_ps(rij, 1));
-
-                __m128 fi = _mm_loadu_ps(fxyz + i + 4);
-                __m128 fj = _mm_loadu_ps(fxyz + j + 4);
-
-                fi = _mm_add_ps(fi, frc);
-                fj = _mm_sub_ps(fj, frc);
-
-                _mm_storeu_ps(fxyz + i + 4, fi);
-                _mm_storeu_ps(fxyz + j + 4, fj);
-
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_2;
+                    local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                    pres_vir += fr * rij2_scalar_2;
+                }
             }
         }
+
+        #pragma omp critical
+        {
+            for (int k = 0; k < 4 * (N+1); k++) {
+                //#pragma omp atomic
+                fxyz[k] += fxyz_local[k];
+            }
+        }
+
+        free(fxyz_local);
     }
+
+    *epot = local_epot;
     pres_vir /= (V * 3.0f);
     *pres = *temp * rho + pres_vir;
 }
@@ -190,8 +202,8 @@ static inline __m256 pbc_avx(__m256 coords, const float cell_length)
 {
     __m256 full_cell_length = _mm256_set1_ps(cell_length);
 
-    // mask_lt: coords <= cell_length
-    __m256 mask_lt = _mm256_cmp_ps(coords, full_cell_length, _CMP_LE_OQ);
+    // mask_lt: coords <= 0
+    __m256 mask_lt = _mm256_cmp_ps(coords, _mm256_setzero_ps(), _CMP_LE_OQ);
 
     // mask_gt: coords > cell_length
     __m256 mask_gt = _mm256_cmp_ps(coords, full_cell_length, _CMP_GT_OQ);
