@@ -175,7 +175,7 @@ static inline __m256d pbc_avx(__m256d cords, const double cell_length)
     __m256d full_cell_length = _mm256_set1_pd(cell_length);
 
     // mask_le: cords <= cell_length
-    __m256d mask_lt = _mm256_cmp_pd(cords, full_cell_length, _CMP_LE_OQ);
+    __m256d mask_lt = _mm256_cmp_pd(cords, _mm256_setzero_pd(), _CMP_LE_OQ);
 
     // mask_gt: cords > cell_length
     __m256d mask_gt = _mm256_cmp_pd(cords, full_cell_length, _CMP_GT_OQ);
@@ -211,6 +211,7 @@ void velocity_verlet(double* restrict rxyz, double* restrict vxyz, double* restr
     for (int i = 0; i < 4 * N; i += 4) { // actualizo posiciones
         __m256d r = _mm256_loadu_pd(rxyz + i);
         r = pbc_avx(r, L);
+        _mm256_storeu_pd(rxyz + i, r);
     }
 
     forces(rxyz, fxyz, epot, pres, temp, rho, V, L); // actualizo fuerzas
