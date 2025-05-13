@@ -7,6 +7,7 @@
 
 #define ECUT (4.0f * (powf(RCUT, -12.0f) - powf(RCUT, -6.0f)))
 
+#include <stdio.h>
 
 void init_pos(float* rxyz, const float rho)
 {
@@ -82,7 +83,6 @@ void init_vel(float* vxyz, float* temp, float* ekin, MTRand* r)
     }
 }
 
-
 static inline __m256 minimum_image_avx(__m256 cords, float cell_length) {
     __m256 half_cell_length = _mm256_set1_ps(0.5f * cell_length);
     __m256 full_cell_length = _mm256_set1_ps(cell_length);
@@ -103,47 +103,47 @@ static inline __m256 minimum_image_avx(__m256 cords, float cell_length) {
     return _mm256_blendv_ps(cords_tmp, sub_cell_length, mask_gt);
 }
 
-
 void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
-        const float* temp, const float rho, const float V, const float L)
+            const float* temp, const float rho, const float V, const float L)
 {
-    // calcula las fuerzas LJ (12-6)
-
+    // Initialize forces and energy
     for (int i = 0; i < 4 * N; i++) {
         fxyz[i] = 0.0f;
     }
     float pres_vir = 0.0f;
-    float rcut2 = RCUT * RCUT;
+    const float rcut2 = RCUT * RCUT;
     *epot = 0.0f;
 
-    for (int i = 0; i < 4 * (N - 1); i += 8) {
+    // Process particles in pairs (each particle is 4 floats)
+    for (int i = 0; i < 4 * (N - 1); i += 4) {
 
-        __m256 ri = _mm256_loadu_ps(rxyz + i);
+        __m128 ri_aux = _mm_loadu_ps(rxyz + i);
+        __m256 ri = _mm256_set_m128(ri_aux, ri_aux);
 
-        for (int j = i + 4; j < 4 * N; j += 4) {
+        for (int j = i + 4; j < 4 * N; j += 8) {
 
             __m256 rj = _mm256_loadu_ps(rxyz + j);
-
-            // distancia mínima entre r_i y r_j
             __m256 rij = _mm256_sub_ps(ri, rj);
             rij = minimum_image_avx(rij, L);
+            __m256 rij2 = _mm256_mul_ps(rij, rij);
 
-            __m256 rij2 = _mm256_mul_ps(rij, rij); // [fa|fb|fc|fd]
+            __m128 rij2_0 = _mm256_extractf128_ps(rij2, 0);
+            __m128 rij2_1 = _mm256_extractf128_ps(rij2, 1);
 
-            float r1[4], r2[4];
-            _mm_storeu_ps(r1, _mm256_castps256_ps128(rij2));
-            _mm_storeu_ps(r2, _mm256_extractf128_ps(rij2, 1));
-            float rij2_scalar_1 = r1[0] + r1[1] + r1[2] + r1[3];
-            float rij2_scalar_2 = r2[0] + r2[1] + r2[2] + r2[3];
+            float r0[4], r1[4];
+            _mm_storeu_ps(r0, rij2_0);
+            _mm_storeu_ps(r1, rij2_1);
+            
+            float rij2_scalar0 = r0[0] + r0[1] + r0[2] + r0[3];
+            float rij2_scalar1 = r1[0] + r1[1] + r1[2] + r1[3];
 
-            if (rij2_scalar_1 <= rcut2) {
-                float r2inv = 1.0f / rij2_scalar_1;
+            if (rij2_scalar0 <= rcut2) {
+                float r2inv = 1.0f / rij2_scalar0;
                 float r6inv = r2inv * r2inv * r2inv;
-
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                __m128 frc = _mm_set1_ps(fr);
-                frc = _mm_mul_ps(frc, _mm256_castps256_ps128(rij));
+                __m128 rij0 = _mm256_extractf128_ps(rij, 0);
+                __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij0);
 
                 __m128 fi = _mm_loadu_ps(fxyz + i);
                 __m128 fj = _mm_loadu_ps(fxyz + j);
@@ -155,32 +155,32 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
                 _mm_storeu_ps(fxyz + j, fj);
 
                 *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_1;
+                pres_vir += fr * rij2_scalar0;
             }
 
-            if (rij2_scalar_2 <= rcut2) {
-                float r2inv = 1.0f / rij2_scalar_2;
+            if (rij2_scalar1 <= rcut2 && j+4 < 4*N) {
+                float r2inv = 1.0f / rij2_scalar1;
                 float r6inv = r2inv * r2inv * r2inv;
-
                 float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                __m128 frc = _mm_set1_ps(fr);
-                frc = _mm_mul_ps(frc, _mm256_extractf128_ps(rij, 1));
+                __m128 rij1 = _mm256_extractf128_ps(rij, 1);
+                __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij1);
 
-                __m128 fi = _mm_loadu_ps(fxyz + i + 4);
+                __m128 fi = _mm_loadu_ps(fxyz + i);
                 __m128 fj = _mm_loadu_ps(fxyz + j + 4);
 
                 fi = _mm_add_ps(fi, frc);
                 fj = _mm_sub_ps(fj, frc);
 
-                _mm_storeu_ps(fxyz + i + 4, fi);
+                _mm_storeu_ps(fxyz + i, fi);
                 _mm_storeu_ps(fxyz + j + 4, fj);
 
                 *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar_2;
+                pres_vir += fr * rij2_scalar1;
             }
         }
     }
+    
     pres_vir /= (V * 3.0f);
     *pres = *temp * rho + pres_vir;
 }
@@ -190,8 +190,8 @@ static inline __m256 pbc_avx(__m256 coords, const float cell_length)
 {
     __m256 full_cell_length = _mm256_set1_ps(cell_length);
 
-    // mask_lt: coords <= cell_length
-    __m256 mask_lt = _mm256_cmp_ps(coords, full_cell_length, _CMP_LE_OQ);
+    // mask_lt: coords <= 0
+    __m256 mask_lt = _mm256_cmp_ps(coords, _mm256_setzero_ps(), _CMP_LE_OQ);
 
     // mask_gt: coords > cell_length
     __m256 mask_gt = _mm256_cmp_ps(coords, full_cell_length, _CMP_GT_OQ);
@@ -224,9 +224,11 @@ void velocity_verlet(float* restrict rxyz, float* restrict vxyz, float* restrict
         vxyz[i + 3] += 0.5f * fxyz[i + 3] * DT;
     }
 
+    
     for (int i = 0; i < 4 * N; i += 8) { // actualizo posiciones
         __m256 r = _mm256_loadu_ps(rxyz + i);
         r = pbc_avx(r, L);
+        _mm256_storeu_ps(rxyz + i, r);
     }
 
     forces(rxyz, fxyz, epot, pres, temp, rho, V, L); // actualizo fuerzas
