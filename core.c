@@ -4,10 +4,9 @@
 #include <math.h>
 #include <immintrin.h>
 #include "mtwister.h"
+#include <stdlib.h>
 
 #define ECUT (4.0f * (powf(RCUT, -12.0f) - powf(RCUT, -6.0f)))
-
-#include <stdio.h>
 
 void init_pos(float* rxyz, const float rho)
 {
@@ -111,76 +110,92 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
         fxyz[i] = 0.0f;
     }
     float pres_vir = 0.0f;
+    float local_epot = 0.0f;
     const float rcut2 = RCUT * RCUT;
-    *epot = 0.0f;
 
-    // Process particles in pairs (each particle is 4 floats)
-    for (int i = 0; i < 4 * (N - 1); i += 4) {
+    #pragma omp parallel reduction(+:pres_vir, local_epot)
+    {
+        float* fxyz_local = (float*)calloc(4 * (N+1), sizeof(float));
 
-        __m128 ri_aux = _mm_loadu_ps(rxyz + i);
-        __m256 ri = _mm256_set_m128(ri_aux, ri_aux);
+        #pragma omp for schedule(static) nowait
+        for (int i = 0; i < 4 * (N - 1); i += 4) {
 
-        for (int j = i + 4; j < 4 * N; j += 8) {
+            __m128 ri_aux = _mm_loadu_ps(rxyz + i);
+            __m256 ri = _mm256_set_m128(ri_aux, ri_aux);
 
-            __m256 rj = _mm256_loadu_ps(rxyz + j);
-            __m256 rij = _mm256_sub_ps(ri, rj);
-            rij = minimum_image_avx(rij, L);
-            __m256 rij2 = _mm256_mul_ps(rij, rij);
+            for (int j = i + 4; j < 4 * N; j += 8) {
 
-            __m128 rij2_0 = _mm256_extractf128_ps(rij2, 0);
-            __m128 rij2_1 = _mm256_extractf128_ps(rij2, 1);
+                __m256 rj = _mm256_loadu_ps(rxyz + j);
+                __m256 rij = _mm256_sub_ps(ri, rj);
+                rij = minimum_image_avx(rij, L);
+                __m256 rij2 = _mm256_mul_ps(rij, rij);
 
-            float r0[4], r1[4];
-            _mm_storeu_ps(r0, rij2_0);
-            _mm_storeu_ps(r1, rij2_1);
-            
-            float rij2_scalar0 = r0[0] + r0[1] + r0[2] + r0[3];
-            float rij2_scalar1 = r1[0] + r1[1] + r1[2] + r1[3];
+                __m128 rij2_0 = _mm256_extractf128_ps(rij2, 0);
+                __m128 rij2_1 = _mm256_extractf128_ps(rij2, 1);
 
-            if (rij2_scalar0 <= rcut2) {
-                float r2inv = 1.0f / rij2_scalar0;
-                float r6inv = r2inv * r2inv * r2inv;
-                float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
+                float r0[4], r1[4];
+                _mm_storeu_ps(r0, rij2_0);
+                _mm_storeu_ps(r1, rij2_1);
 
-                __m128 rij0 = _mm256_extractf128_ps(rij, 0);
-                __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij0);
+                float rij2_scalar0 = r0[0] + r0[1] + r0[2] + r0[3];
+                float rij2_scalar1 = r1[0] + r1[1] + r1[2] + r1[3];
 
-                __m128 fi = _mm_loadu_ps(fxyz + i);
-                __m128 fj = _mm_loadu_ps(fxyz + j);
+                if (rij2_scalar0 <= rcut2) {
+                    float r2inv = 1.0f / rij2_scalar0;
+                    float r6inv = r2inv * r2inv * r2inv;
+                    float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                fi = _mm_add_ps(fi, frc);
-                fj = _mm_sub_ps(fj, frc);
+                    __m128 rij0 = _mm256_extractf128_ps(rij, 0);
+                    __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij0);
 
-                _mm_storeu_ps(fxyz + i, fi);
-                _mm_storeu_ps(fxyz + j, fj);
+                    __m128 fi = _mm_loadu_ps(fxyz_local + i);
+                    __m128 fj = _mm_loadu_ps(fxyz_local + j);
 
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar0;
-            }
+                    fi = _mm_add_ps(fi, frc);
+                    fj = _mm_sub_ps(fj, frc);
 
-            if (rij2_scalar1 <= rcut2 && j+4 < 4*N) {
-                float r2inv = 1.0f / rij2_scalar1;
-                float r6inv = r2inv * r2inv * r2inv;
-                float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
+                    _mm_storeu_ps(fxyz_local + i, fi);
+                    _mm_storeu_ps(fxyz_local + j, fj);
 
-                __m128 rij1 = _mm256_extractf128_ps(rij, 1);
-                __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij1);
+                    local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                    pres_vir += fr * rij2_scalar0;
+                }
 
-                __m128 fi = _mm_loadu_ps(fxyz + i);
-                __m128 fj = _mm_loadu_ps(fxyz + j + 4);
+                if (rij2_scalar1 <= rcut2 && j+4 < 4*N) {
+                    float r2inv = 1.0f / rij2_scalar1;
+                    float r6inv = r2inv * r2inv * r2inv;
+                    float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-                fi = _mm_add_ps(fi, frc);
-                fj = _mm_sub_ps(fj, frc);
+                    __m128 rij1 = _mm256_extractf128_ps(rij, 1);
+                    __m128 frc = _mm_mul_ps(_mm_set1_ps(fr), rij1);
 
-                _mm_storeu_ps(fxyz + i, fi);
-                _mm_storeu_ps(fxyz + j + 4, fj);
+                    __m128 fi = _mm_loadu_ps(fxyz_local + i);
+                    __m128 fj = _mm_loadu_ps(fxyz_local + j + 4);
 
-                *epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-                pres_vir += fr * rij2_scalar1;
+                    fi = _mm_add_ps(fi, frc);
+                    fj = _mm_sub_ps(fj, frc);
+
+                    _mm_storeu_ps(fxyz_local + i, fi);
+                    _mm_storeu_ps(fxyz_local + j + 4, fj);
+
+                    local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+                    pres_vir += fr * rij2_scalar1;
+                }
             }
         }
+
+        #pragma omp critical
+        {
+            for (int k = 0; k < 4 * N; k++) {
+                //#pragma omp atomic
+                fxyz[k] += fxyz_local[k];
+            }
+        }
+
+        free(fxyz_local);
     }
-    
+
+    *epot = local_epot;
     pres_vir /= (V * 3.0f);
     *pres = *temp * rho + pres_vir;
 }
