@@ -7,3 +7,5 @@ viz
 .DS_Store
 *.i
 *.s
+*.bc
+intel-oneapi-base-toolkit-2025.0.1.46_offline*
