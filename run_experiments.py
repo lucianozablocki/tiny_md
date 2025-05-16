@@ -83,7 +83,7 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 )
                             }'
-                    if 'L1-dcache-load-misses' in line:
+                    if 'L1-dcache-load-misses' in line and '<not counted>' not in line:
                         l1_misses = f'{
                             int(
                                 line.split('L1-dcache-load-misses')[0]
@@ -91,7 +91,7 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 )
                             }'
-                    if 'dTLB-load-misses' in line:
+                    if 'dTLB-load-misses' in line and '<not counted>' not in line:
                         dtlb_misses = f'{
                             int(
                                 line.split('dTLB-load-misses')[0]
