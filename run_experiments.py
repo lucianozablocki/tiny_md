@@ -106,9 +106,9 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 ):.3f
                             }'
-                results.append((particulas_s, N, opt, compiler, runs[m], threads_num, gflops, time, l1_misses, dtlb_misses))
+                results.append((particulas_s, N, opt, compiler, runs[m], gflops, time, l1_misses, dtlb_misses))
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs', 'threads num', 'GFLOPS', 'time', 'l1 misses', 'dtlb misses'])
+    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs', 'GFLOPS', 'time', 'l1 misses', 'dtlb misses'])
     writer.writerows(results)
