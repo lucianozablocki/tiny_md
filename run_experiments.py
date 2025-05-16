@@ -4,6 +4,11 @@ import csv
 import datetime
 import os
 import logging
+from subprocess import call 
+
+call("./opt/AMD/aocc-compiler-4.1.0/setenv_AOCC.sh", shell=True)
+call("./opt/intel/oneapi/setvars.sh", shell=True)
+
 
 os.makedirs('results', exist_ok=True)
 timestamp = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
@@ -39,7 +44,7 @@ for compiler in compilers:
                 logger.error(clean_result)
                 raise Exception("Make clean failed.")
 
-            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N}" CFLAGS="-march=native {opt}" TARGETS="tiny_md"')
+            logger.info(f'Running: make CC="{compiler}" CPPFLAGS="-DN={N} -DSEED=0" CFLAGS="-march=native {opt}" TARGETS="tiny_md"')
             make_result = subprocess.run(["make", f'CC="{compiler}"', f'CPPFLAGS="-DN={N}"', f"CFLAGS=-march=native {opt}", 'TARGETS=tiny_md'], capture_output=True, text=True)
 
             if make_result.returncode != 0:
@@ -47,9 +52,19 @@ for compiler in compilers:
                 raise Exception("Make failed.")
 
             for _ in range(0,runs[m]):
-                result = subprocess.run(["./tiny_md"], capture_output=True, text=True)
+                result = subprocess.run("perf stat -e fp_ret_sse_avx_ops.all,cpu-cycles,instructions,L1-dcache-loads,L1-dcache-load-misses,dTLB-loads,dTLB-load-misses,l3_comb_clstr_state.request_miss ./tiny_md",
+                   shell=True,
+                   capture_output=True,
+                   text=True)
                 output = result.stdout
+                output2 = result.stderr
+                particulas_s = ''
+                gflops = ''
+                time = ''
+                l1_misses = ''
+                dtlb_misses = ''
                 for line in output.split("\n"):
+                    logger.info(line)
                     if '***' in line:
                         particulas_s = f'{
                             float(
@@ -58,10 +73,42 @@ for compiler in compilers:
                                 .strip() # remover cualquier leading/trailing whitespace
                                 ):.3f
                             }'
-                        results.append((particulas_s, N, opt, compiler, runs[m]))
+                for line in output2.split("\n"):
                     logger.info(line)
+                    if 'fp_ret_sse_avx_ops.all' in line:
+                        gflops = f'{
+                            int(
+                                line.split('fp_ret_sse_avx_ops.all')[0]
+                                .replace(",","")
+                                .strip() # remover cualquier leading/trailing whitespace
+                                )
+                            }'
+                    if 'L1-dcache-load-misses' in line:
+                        l1_misses = f'{
+                            int(
+                                line.split('L1-dcache-load-misses')[0]
+                                .replace(",","")
+                                .strip() # remover cualquier leading/trailing whitespace
+                                )
+                            }'
+                    if 'dTLB-load-misses' in line:
+                        dtlb_misses = f'{
+                            int(
+                                line.split('dTLB-load-misses')[0]
+                                .replace(",","")
+                                .strip() # remover cualquier leading/trailing whitespace
+                                )
+                            }'
+                    if 'seconds time elapsed' in line:
+                        time = f'{
+                            float(
+                                line.replace('seconds time elapsed', "")
+                                .strip() # remover cualquier leading/trailing whitespace
+                                ):.3f
+                            }'
+                results.append((particulas_s, N, opt, compiler, runs[m], threads_num, gflops, time, l1_misses, dtlb_misses))
 
 with open(f'results/{timestamp}.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs'])
+    writer.writerow(['particulas/s', 'N', 'opt', 'compiler', 'runs', 'threads num', 'GFLOPS', 'time', 'l1 misses', 'dtlb misses'])
     writer.writerows(results)
