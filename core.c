@@ -112,8 +112,6 @@ static inline __m256d minimum_image_avx(__m256d cords, double cell_length) {
 void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict epot, double* restrict pres,
         const double* restrict temp, const double rho, const double V, const double L)
 {
-    // calcula las fuerzas LJ (12-6)
-
     for (int i = 0; i < 4 * N; i++) {
         fxyz[i] = 0.0;
     }
@@ -128,13 +126,8 @@ void forces(const double* restrict rxyz, double* restrict fxyz, double* restrict
         for (int j = i + 4; j < 4 * N; j += 4) {
 
             __m256d rj = _mm256_loadu_pd(rxyz + j);
-
-            // rij = ri - rj
             __m256d rij = _mm256_sub_pd(ri, rj);
-
             rij = minimum_image_avx(rij, L);
-
-            // rij2 = rij * rij
             __m256d rij2 = _mm256_mul_pd(rij, rij); // [da|db|dc|dd]
 
             double r[4];
