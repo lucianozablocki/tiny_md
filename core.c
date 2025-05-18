@@ -106,15 +106,13 @@ static inline __m256 minimum_image_avx(__m256 cords, float cell_length) {
 void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
             const float* temp, const float rho, const float V, const float L)
 {
-    // Initialize forces and energy
     for (int i = 0; i < 4 * N; i++) {
         fxyz[i] = 0.0f;
     }
     float pres_vir = 0.0f;
-    const float rcut2 = RCUT * RCUT;
+    float rcut2 = RCUT * RCUT;
     *epot = 0.0f;
 
-    // Process particles in pairs (each particle is 4 floats)
     for (int i = 0; i < 4 * (N - 1); i += 4) {
 
         __m128 ri_aux = _mm_loadu_ps(rxyz + i);
