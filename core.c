@@ -117,7 +117,7 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
     {
         float* fxyz_local = (float*)calloc(4 * (N+1), sizeof(float));
 
-        #pragma omp for schedule(static) nowait
+        #pragma omp for schedule(dynamic,16) nowait
         for (int i = 0; i < 4 * (N - 1); i += 4) {
 
             __m128 ri_aux = _mm_loadu_ps(rxyz + i);
