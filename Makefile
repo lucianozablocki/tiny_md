@@ -1,29 +1,28 @@
-CC      = gcc
-CFLAGS	= -O0
-WFLAGS	= -std=c11 -Wall -Wextra -g
-LDFLAGS	= -lm
+CC = gcc
+NVCC = nvcc
+CFLAGS = -march=native -O1 -ffast-math -ftree-vectorize -funroll-loops -fopenmp
+NVCCFLAGS = -arch=sm_61 -O3 --use_fast_math
+CPPFLAGS = -DN=2048 -DSEED=0
+LDFLAGS = -lm -lcudart
 
-TARGETS	= tiny_md viz mtwiste
-SOURCES	= $(shell echo *.c)
-OBJECTS = core.o wtime.o mtwister.o
+TARGET = tiny_md
+OBJS = tiny_md.o core.o core_cuda.o wtime.o mtwister.o
 
-all: $(TARGETS)
+all: $(TARGET)
 
-viz: viz.o $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lGL -lGLU -lglut
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-tiny_md: tiny_md.o $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+# Compile CUDA code
+core_cuda.o: core.cu
+	$(NVCC) $(NVCCFLAGS) $(CPPFLAGS) -Xcompiler "$(CFLAGS)" -c $< -o $@
+
+# Compile CPU code
+core.o: core.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 %.o: %.c
-	$(CC) $(WFLAGS) $(CPPFLAGS) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGETS) *.i *.s *.o *.xyz *.log .depend
-
-.depend: $(SOURCES)
-	$(CC) -MM $^ > $@
-
--include .depend
-
-.PHONY: clean all
+	rm -f $(TARGET) *.o
