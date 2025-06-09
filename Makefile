@@ -1,7 +1,7 @@
 CC = gcc
 NVCC = nvcc
 CFLAGS = -march=native -O1 -ffast-math -ftree-vectorize -funroll-loops -fopenmp
-NVCCFLAGS = -arch=sm_61 -O3 --use_fast_math
+NVCCFLAGS = -arch=sm_75 -O3 --use_fast_math
 CPPFLAGS = -DN=2048 -DSEED=0
 LDFLAGS = -lm -lcudart
 

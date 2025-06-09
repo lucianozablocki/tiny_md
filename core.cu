@@ -22,8 +22,7 @@ __global__ void forces_kernel(const float4* rxyz, float4* fxyz,
     float local_epot = 0.0f;
     float local_pres_vir = 0.0f;
 
-    for (int j = 0; j < N; j++) {
-        if (i == j) continue;
+    for (int j = i+1; j < N; j++) {
 
         float4 rj = rxyz[j];
         float3 rij = {ri.x - rj.x, ri.y - rj.y, ri.z - rj.z};
@@ -38,12 +37,20 @@ __global__ void forces_kernel(const float4* rxyz, float4* fxyz,
             fi.x += fr * rij.x;
             fi.y += fr * rij.y;
             fi.z += fr * rij.z;
+
+			// Update force on j (REQUIRES ATOMIC)
+            atomicAdd(&fxyz[j].x, -fr * rij.x);
+            atomicAdd(&fxyz[j].y, -fr * rij.y);
+            atomicAdd(&fxyz[j].z, -fr * rij.z);
+
             local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
             local_pres_vir += fr * rij2;
         }
     }
 
-    fxyz[i] = fi;
+	atomicAdd(&fxyz[i].x, fi.x);
+	atomicAdd(&fxyz[i].y, fi.y);
+	atomicAdd(&fxyz[i].z, fi.z);
     atomicAdd(epot, local_epot);
     atomicAdd(pres_vir, local_pres_vir);
 }
@@ -63,8 +70,8 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
     cudaMemset(d_epot, 0, sizeof(float));
     cudaMemset(d_pres_vir, 0, sizeof(float));
 
-    dim3 blocks((N + 255) / 256);
-    dim3 threads(256);
+    dim3 blocks((N + 127) / 128);
+    dim3 threads(128);
     forces_kernel<<<blocks, threads>>>((float4*)d_rxyz, (float4*)d_fxyz, 
                                      d_epot, d_pres_vir, RCUT*RCUT, L);
 
