@@ -15,7 +15,7 @@ __global__ void forces_kernel(const float4* rxyz, float4* fxyz,
                              float* epot, float* pres_vir,
                              float rcut2, float L) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= N) return;
+    if (i >= N-1) return;
 
     float4 ri = rxyz[i];
     float4 fi = {0.0f, 0.0f, 0.0f, 0.0f};
