@@ -23,12 +23,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-M = 6
+M = 9
 Ns = []
 for m in range(1,M+1):
     Ns.append(4*m**3)
 
-runs = [30,25,20,15,10,5]
+runs = [30,25,20,15,10,5,1,1,1]
 opt_flags = ['-O1 -ffast-math -ftree-vectorize -funroll-loops']
 compilers = ['icc', 'clang', 'gcc']
 results = []
