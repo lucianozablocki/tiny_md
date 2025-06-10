@@ -12,51 +12,45 @@ __device__ float3 minimum_image(float3 rij, float L) {
 }
 
 __global__ void forces_kernel(const float4* rxyz, float4* fxyz, 
-                             float* epot, float* pres_vir,
-                             float rcut2, float L) {
+        float* epot, float* pres_vir,
+        float rcut2, float L) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= N-1) return;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i >= N || j >= N || i >= j) return;  // Solo pares i < j
 
     float4 ri = rxyz[i];
-    float4 fi = {0.0f, 0.0f, 0.0f, 0.0f};
-    float local_epot = 0.0f;
-    float local_pres_vir = 0.0f;
+    float4 rj = rxyz[j];
+    float3 rij = {ri.x - rj.x, ri.y - rj.y, ri.z - rj.z};
+    rij = minimum_image(rij, L);
 
-    for (int j = i+1; j < N; j++) {
+    float rij2 = rij.x*rij.x + rij.y*rij.y + rij.z*rij.z;
+    if (rij2 <= rcut2) {
+        float r2inv = 1.0f / rij2;
+        float r6inv = r2inv * r2inv * r2inv;
+        float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
 
-        float4 rj = rxyz[j];
-        float3 rij = {ri.x - rj.x, ri.y - rj.y, ri.z - rj.z};
-        rij = minimum_image(rij, L);
+        // Fuerzas
+        float3 force = {fr * rij.x, fr * rij.y, fr * rij.z};
 
-        float rij2 = rij.x*rij.x + rij.y*rij.y + rij.z*rij.z;
-        if (rij2 <= rcut2) {
-            float r2inv = 1.0f / rij2;
-            float r6inv = r2inv * r2inv * r2inv;
-            float fr = 24.0f * r2inv * r6inv * (2.0f * r6inv - 1.0f);
+        atomicAdd(&fxyz[i].x,  force.x);
+        atomicAdd(&fxyz[i].y,  force.y);
+        atomicAdd(&fxyz[i].z,  force.z);
 
-            fi.x += fr * rij.x;
-            fi.y += fr * rij.y;
-            fi.z += fr * rij.z;
+        atomicAdd(&fxyz[j].x, -force.x);
+        atomicAdd(&fxyz[j].y, -force.y);
+        atomicAdd(&fxyz[j].z, -force.z);
 
-			// Update force on j (REQUIRES ATOMIC)
-            atomicAdd(&fxyz[j].x, -fr * rij.x);
-            atomicAdd(&fxyz[j].y, -fr * rij.y);
-            atomicAdd(&fxyz[j].z, -fr * rij.z);
+        float pair_epot = 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
+        float pair_pres = fr * rij2;
 
-            local_epot += 4.0f * r6inv * (r6inv - 1.0f) - ECUT;
-            local_pres_vir += fr * rij2;
-        }
+        atomicAdd(epot, pair_epot);
+        atomicAdd(pres_vir, pair_pres);
     }
-
-	atomicAdd(&fxyz[i].x, fi.x);
-	atomicAdd(&fxyz[i].y, fi.y);
-	atomicAdd(&fxyz[i].z, fi.z);
-    atomicAdd(epot, local_epot);
-    atomicAdd(pres_vir, local_pres_vir);
 }
 
 void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
-                const float* temp, float rho, float V, float L) {
+        const float* temp, float rho, float V, float L) {
     float *d_rxyz, *d_fxyz, *d_epot, *d_pres_vir;
     size_t size = 4 * N * sizeof(float);
 
@@ -70,14 +64,16 @@ void forces(const float* rxyz, float* fxyz, float* epot, float* pres,
     cudaMemset(d_epot, 0, sizeof(float));
     cudaMemset(d_pres_vir, 0, sizeof(float));
 
-    dim3 blocks((N + 127) / 128);
-    dim3 threads(128);
+    int threads_per_block = 16;  // Bloques 16x16 = 256 hilos
+    dim3 blocks((N + threads_per_block - 1) / threads_per_block,
+            (N + threads_per_block - 1) / threads_per_block);
+    dim3 threads(threads_per_block, threads_per_block);
     forces_kernel<<<blocks, threads>>>((float4*)d_rxyz, (float4*)d_fxyz, 
-                                     d_epot, d_pres_vir, RCUT*RCUT, L);
+            d_epot, d_pres_vir, RCUT*RCUT, L);
 
     cudaMemcpy(fxyz, d_fxyz, size, cudaMemcpyDeviceToHost);
     cudaMemcpy(epot, d_epot, sizeof(float), cudaMemcpyDeviceToHost);
-    
+
     float h_pres_vir;
     cudaMemcpy(&h_pres_vir, d_pres_vir, sizeof(float), cudaMemcpyDeviceToHost);
     *pres = *temp * rho + h_pres_vir / (3.0f * V);
