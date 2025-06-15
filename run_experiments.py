@@ -23,16 +23,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-M = 9
+M = 10
 Ns = []
 for m in range(1,M+1):
-    Ns.append(4*m**3)
+    Ns.append(4*(m+9)**3)
 
-runs = [30,25,20,15,10,5,1,1,1]
+runs = [1,1,1,1,1,1,1,1,1,1]
 opt_flags = ['-O1 -ffast-math -ftree-vectorize -funroll-loops -fopenmp']
 compilers = ['icc', 'clang', 'gcc']
 results = []
-threads_nums = [40,35,30,20,10,5,1]
+threads_nums = [40,35,30]
 
 for threads_num in threads_nums:
     for compiler in compilers:
