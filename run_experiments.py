@@ -23,16 +23,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-M = 3
+M = 10
 Ns = []
 for m in range(1,M+1):
-    Ns.append(4*(m+6)**3)
+    Ns.append(4*(m+9)**3)
 
-runs = [5,5,5]
+runs = [1,1,1,1,1,1,1,1,1,1]
 opt_flags = ['-O1 -ffast-math -ftree-vectorize -funroll-loops -fopenmp']
-compilers = ['icc', 'clang', 'gcc']
+compilers = ['clang', 'gcc']
 results = []
-threads_nums = [35,30,20,10,5,1]
+threads_nums = [1]
 
 for threads_num in threads_nums:
     for compiler in compilers:
@@ -55,7 +55,7 @@ for threads_num in threads_nums:
 
                 for _ in range(0,runs[m]):
                     os.environ["OMP_NUM_THREADS"] = f'{threads_num}'
-                    result = subprocess.run("perf stat -e fp_ret_sse_avx_ops.all,cpu-cycles,instructions,L1-dcache-loads,L1-dcache-load-misses,dTLB-loads,dTLB-load-misses,l3_comb_clstr_state.request_miss ./tiny_md",
+                    result = subprocess.run("./tiny_md",
                        shell=True,
                        capture_output=True,
                        text=True)
@@ -78,30 +78,6 @@ for threads_num in threads_nums:
                                 }'
                     for line in output2.split("\n"):
                         logger.info(line)
-                        if 'fp_ret_sse_avx_ops.all' in line:
-                            gflops = f'{
-                                int(
-                                    line.split('fp_ret_sse_avx_ops.all')[0]
-                                    .replace(",","")
-                                    .strip() # remover cualquier leading/trailing whitespace
-                                    )
-                                }'
-                        if 'L1-dcache-load-misses' in line:
-                            l1_misses = f'{
-                                int(
-                                    line.split('L1-dcache-load-misses')[0]
-                                    .replace(",","")
-                                    .strip() # remover cualquier leading/trailing whitespace
-                                    )
-                                }'
-                        if 'dTLB-load-misses' in line:
-                            dtlb_misses = f'{
-                                int(
-                                    line.split('dTLB-load-misses')[0]
-                                    .replace(",","")
-                                    .strip() # remover cualquier leading/trailing whitespace
-                                    )
-                                }'
                         if 'seconds time elapsed' in line:
                             time = f'{
                                 float(
